@@ -2,7 +2,7 @@
 
 # EeveeSpotify
 
-**Updated and maintained by Skye & jaydenjcpy  - Current Version 9.1.40 (9.1.32 is the most stanle rn)**
+**Updated and maintained by [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled)  - Current Version 9.1.40**
 
 **Last updated 4/22/26**
 
@@ -43,7 +43,13 @@ This tweak makes Spotify think you have a Premium subscription, granting free li
 
 ## The History
 
-In January 2024, Spotilife, the only tweak to get Spotify Premium, stopped working on new Spotify versions. I decompiled Spotilife, reverse-engineered Spotify, intercepted requests, etc., and created this tweak.
+In January 2024, Spotilife, the only tweak to get Spotify Premium, stopped working on new Spotify versions. (whoeevee)[https://github.com/whoeevee] decompiled Spotilife, reverse-engineered Spotify, intercepted requests, etc., and created this tweak.
+
+In December 2025, whoeevee, the maintainer of the EeveeSpotify tweak at the time, announced he'll be discontinuing the tweak because of the burden of keeping up with Spotify's constantly changing architectures. Soon after, (Meep1)[https://github.com/Meeep1], forks the original Eevee repo and continues to develop the tweak to support newer Spotify versions, under the project name EeveeSpotiyRevivedPublic.
+
+In  March 2026, the latest EeveeSpotifyRevivedPublic release, v9.1.28, users experienced constant logging out issues and reported to Skye, however, at the time of this README.md written, EeveeSpotifyRevivedPublic hasn't released any newer updates. During March, I've been constantly annoyed by the logout issue and decided to take matters into my own hands and forked EeveeSpotifyRevivedPublic and fixed the logout issue, which will eventually lead to the creation of this repository, which will be continuing the legacy of EeveeSpotify for newer versions of Spotify.
+
+
 
 ## Restrictions
 
@@ -81,16 +87,6 @@ The tweak also sets `trackRowsEnabled` to `true`, allowing you to see track rows
 For sideloaded IPAs, we recommend using **Sideloadly** or certificate-based signing tools like **ksign** for best compatibility.
 
 To open Spotify links in sideloaded app, use [OpenSpotifySafariExtension](https://github.com/BillyCurtis/OpenSpotifySafariExtension). Remember to activate it and allow access in Settings > Safari > Extensions.
-
-## Donations to Meep1
-
-USDC (ETH)
-
-0x2Bf9F27FBa0eD37940819907a2e732523d4523C1
-
-BTC
-
-3NB6WhB8Krtncq6EnGCFoe35JKh9B1n6eC
 
 
 
