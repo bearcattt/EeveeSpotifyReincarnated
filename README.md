@@ -62,6 +62,7 @@ Please refrain from opening issues about the following features, as they are ser
 - Spotify Connect (When using Spotify Connect, the device will act as a remote control and stream directly to the connected device. This is a server-sided limitation and is beyond the control of EeveeSpotify, so it will behave as if you have a Free subscription while using this feature.)
 
 ## [Common Issues](https://github.com/jaydenjcpy/EeveeSpotifyReincarnated/blob/Master/common_issues.md)
+Please check out the hyperlink above before opening an issue
 
 
 ## Lyrics Support
