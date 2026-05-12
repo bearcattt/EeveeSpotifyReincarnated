@@ -3,11 +3,24 @@
         "title": "Development",
         "shuffled": false,
         "contributors": [
-            {
-                "username": "meeep1",
+            {   "username": "jaydenjcpy",
                 "roles": [
                     "Current Maintainer",
                     "Developer"
+                ]
+            },
+            { "username": "faroukbmiled",
+                "roles": [
+                    "Collaborator",
+                    "Developer"
+                ]
+            },
+                    
+            {
+                "username": "meep1",
+                "roles": [
+                    "EeveeSpotifyRevivedPublic Maintainer",
+                    "EeveeSpotifyRevivedPublic Developer"
                 ]
             },
             {
