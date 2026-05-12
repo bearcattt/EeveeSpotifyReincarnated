@@ -62,8 +62,13 @@ jobs:
           brew install make dpkg ldid wget
           echo "$(brew --prefix make)/libexec/gnubin" >> $GITHUB_PATH
           python3 -m pip install --upgrade --break-system-packages \
-              git+https://github.com/asdfzxcvbn/pyzule-rw.git \
-              ipapatch
+              git+https://github.com/asdfzxcvbn/pyzule-rw.git
+          ARCH=$(uname -m); [ "$ARCH" = "x86_64" ] && export SUFFIX=macos-amd64 || export SUFFIX=macos-arm64
+          IPAPATCH_URL=$(curl -fsSL https://api.github.com/repos/asdfzxcvbn/ipapatch/releases/latest \
+              | python3 -c "import sys,json,os; r=json.load(sys.stdin); s=os.environ['SUFFIX']; print(next(a['browser_download_url'] for a in r['assets'] if a['name']==f'ipapatch.{s}'))" )
+          echo "Downloading ipapatch from $IPAPATCH_URL"
+          sudo curl -fsSL "$IPAPATCH_URL" -o /usr/local/bin/ipapatch
+          sudo chmod +x /usr/local/bin/ipapatch
 
       - name: Build zxPluginsInject.dylib
         run: |

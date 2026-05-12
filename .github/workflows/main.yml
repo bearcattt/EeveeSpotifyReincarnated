@@ -45,10 +45,18 @@ jobs:
           brew install make dpkg ldid wget
           # GNU Make for parallel builds
           echo "$(brew --prefix make)/libexec/gnubin" >> $GITHUB_PATH
-          # cyan + ipapatch for IPA injection (our sideload pipeline)
+          # cyan (pyzule-rw) — not on PyPI, install from GitHub
           python3 -m pip install --upgrade --break-system-packages \
-              git+https://github.com/asdfzxcvbn/pyzule-rw.git \
-              ipapatch
+              git+https://github.com/asdfzxcvbn/pyzule-rw.git
+          # ipapatch — prebuilt binary from GitHub releases (asdfzxcvbn/ipapatch)
+          # macos-latest runners are arm64; use macos-arm64 asset.
+          ARCH=$(uname -m); [ "$ARCH" = "x86_64" ] && export SUFFIX=macos-amd64 || export SUFFIX=macos-arm64
+          IPAPATCH_URL=$(curl -fsSL https://api.github.com/repos/asdfzxcvbn/ipapatch/releases/latest \
+              | python3 -c "import sys,json,os; r=json.load(sys.stdin); s=os.environ['SUFFIX']; print(next(a['browser_download_url'] for a in r['assets'] if a['name']==f'ipapatch.{s}'))" )
+          echo "Downloading ipapatch from $IPAPATCH_URL"
+          sudo curl -fsSL "$IPAPATCH_URL" -o /usr/local/bin/ipapatch
+          sudo chmod +x /usr/local/bin/ipapatch
+          ipapatch --help >/dev/null 2>&1 || ipapatch -h >/dev/null 2>&1 || { ipapatch || true; }
 
       - name: Build EeveeSwiftProtobuf.framework from source
         env:
