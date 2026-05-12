@@ -7,7 +7,21 @@ struct EeveeSettingsView: View {
     
     @State private var hasShownCommonIssuesTip = UserDefaults.hasShownCommonIssuesTip
     @State private var isClearingData = false
-    
+
+    private func confirmDestructive(
+        title: String,
+        message: String,
+        confirmTitle: String,
+        onConfirm: @escaping () -> Void
+    ) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel".uiKitLocalized, style: .cancel))
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .destructive) { _ in
+            onConfirm()
+        })
+        WindowHelper.shared.present(alert)
+    }
+
     private func pushSettingsController(with view: any View, title: String) {
         let viewController = EeveeSettingsViewController(
             navigationController.view.frame,
@@ -135,13 +149,19 @@ struct EeveeSettingsView: View {
             
             Section(footer: Text("reset_data_description".localized)) {
                 Button {
-                    isClearingData = true
+                    confirmDestructive(
+                        title: "reset_data".localized,
+                        message: "reset_data_description".localized,
+                        confirmTitle: "reset_data".localized
+                    ) {
+                        isClearingData = true
 
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        OfflineHelper.resetData(clearCaches: true)
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            OfflineHelper.resetData(clearCaches: true)
 
-                        DispatchQueue.main.async {
-                            exitApplication()
+                            DispatchQueue.main.async {
+                                exitApplication()
+                            }
                         }
                     }
                 } label: {
@@ -156,11 +176,17 @@ struct EeveeSettingsView: View {
 
             Section(footer: Text("Force re-login. Wipes Spotify keychain entries, sandbox dirs, and app-group containers. Other sideloaded apps untouched. App exits when done.")) {
                 Button {
-                    isClearingData = true
-                    DispatchQueue.global(qos: .userInitiated).async {
-                        FullResetHelper.wipeSpotifyState()
-                        DispatchQueue.main.async {
-                            exitApplication()
+                    confirmDestructive(
+                        title: "Full Reset",
+                        message: "Wipes Spotify keychain, sandbox dirs, and app-group containers. Forces re-login. App exits when done.",
+                        confirmTitle: "Full Reset"
+                    ) {
+                        isClearingData = true
+                        DispatchQueue.global(qos: .userInitiated).async {
+                            FullResetHelper.wipeSpotifyState()
+                            DispatchQueue.main.async {
+                                exitApplication()
+                            }
                         }
                     }
                 } label: {

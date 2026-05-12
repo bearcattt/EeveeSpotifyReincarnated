@@ -9,6 +9,8 @@ private func probeEnabled(_ name: String) -> Bool {
 
 private let traceNet:   Bool = false
 private let traceNotif: Bool = false
+// TESTING: dumps ad-class methods/ivars on launch.
+private let traceAds:   Bool = false
 
 private let importantNotifSubstrings: [String] = [
     "premium", "product", "account", "session", "login", "logout",
@@ -88,6 +90,22 @@ private let classesToDump: [String] = [
     "Connectivity_SessionImpl.SessionFactoryImpl",
 ]
 
+// TESTING: ad-class targets for traceAds dump.
+private let adClassesToDump: [String] = [
+    "_TtC19AdsPlatform_AdsImpl14AdsServiceImpl",
+    "_TtC19AdsPlatform_AdsImpl16AdPreviewHandler",
+    "_TtC29AdsNowPlaying_EmbeddedNPVImpl22EmbeddedNPVServiceImpl",
+    "_TtC29AdsNowPlaying_InStreamAdsImpl18InStreamAdsService",
+    "_TtC20NativeAds_LoggerImpl26NativeAdsLoggerServiceImpl",
+    "_TtC21NativeAds_ElementImpl27NativeAdsElementServiceImpl",
+    "_TtC28AdsPlatform_AdsBaseSwiftImpl19AdSlotRegistrarImpl",
+    "_TtC48AdsEmbedded_AdsSponsoredContextNPBAttachmentImpl25AdModelChangedEventSource",
+    "_TtC16Home_EvoPageImpl27SectionProviderRegistryImpl",
+    "_TtC16Home_EvoPageImpl24AdPreviewSectionProvider",
+    "_TtC16Home_EvoPageImpl31VideoBrandAdITGCSectionProvider",
+    "_TtC16Home_EvoPageImpl33DisplayBrandAdITGCSectionProvider",
+]
+
 private let runClassDump = false
 private var classDumpDone = false
 
@@ -132,9 +150,17 @@ private func dumpClass(_ name: String) {
 }
 
 private func dumpClassesOnce() {
-    guard runClassDump, !classDumpDone else { return }
+    guard runClassDump || traceAds, !classDumpDone else { return }
     classDumpDone = true
-    for n in classesToDump { dumpClass(n) }
+    if runClassDump {
+        for n in classesToDump { dumpClass(n) }
+    }
+    // TESTING: ad-class dump (independent of runClassDump)
+    if traceAds {
+        NSLog("[PROBE][ADS] === ad class dump begin ===")
+        for n in adClassesToDump { dumpClass(n) }
+        NSLog("[PROBE][ADS] === ad class dump end ===")
+    }
 
     // objc_copyClassList returns AutoreleasingUnsafeMutablePointer; subscripting
     // triggers retain/autorelease msgSend which aborts on iOS 26's baked-in
@@ -163,7 +189,10 @@ private func dumpClassesOnce() {
 func activateEeveeProbes() {
     let netOn = traceNet
     let notifOn = true
-    NSLog("[PROBE] activating: net=%@ notif=%@", netOn ? "on" : "off", notifOn ? "on" : "off")
+    NSLog("[PROBE] activating: net=%@ notif=%@ ads=%@",
+          netOn ? "on" : "off",
+          notifOn ? "on" : "off",
+          traceAds ? "on" : "off")
     if netOn { ProbeNetGroup().activate() }
     if notifOn { ProbeNotifGroup().activate() }
     dumpClassesOnce()

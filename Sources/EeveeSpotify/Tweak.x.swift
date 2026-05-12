@@ -232,6 +232,11 @@ struct EeveeSpotify: Tweak {
         // other Eevee path is disabled.
         activateEeveePremiumForce()
 
+        // TESTING: extended ad blocker (NPV/lyrics ad, home brand-ads, in-stream).
+        activateEeveeAdBlockerExtended()
+
+        // activateEeveeFlexGesture()
+
         // Global kill-switch for debugging “instant crash / no logs”.
         // If setting this makes Spotify launch, the crash is definitely in one of our hook activations.
         if eeveeEnvFlag("EEVEE_DISABLE_ALL") {
@@ -358,6 +363,14 @@ struct EeveeSpotify: Tweak {
             } else {
                 writeDebugLog("[INIT] Skipped settings integration (ProfileSettingsSection API mismatch)")
             }
+
+            // 9.1.44 path — ProfileSettingsSection gone, new SettingsListViewController owns Settings root.
+            if NSClassFromString("_TtC21Settings_PlatformImpl26SettingsListViewController") != nil {
+                UniversalSettingsIntegrationListVCGroup().activate()
+                writeDebugLog("[INIT] Activated SettingsListViewController hook (9.1.44 path)")
+            } else {
+                writeDebugLog("[INIT] Settings_PlatformImpl.SettingsListViewController missing")
+            }
             NSLog("[EeveeSpotify] Initialization complete for 9.1.x")
             activateEeveeProbes()
             return
@@ -393,6 +406,9 @@ struct EeveeSpotify: Tweak {
         UniversalSettingsIntegrationSettingsVCGroup().activate()
         if NSClassFromString("RootSettingsViewController") != nil {
             UniversalSettingsIntegrationRootSettingsVCGroup().activate()
+        }
+        if NSClassFromString("_TtC21Settings_PlatformImpl26SettingsListViewController") != nil {
+            UniversalSettingsIntegrationListVCGroup().activate()
         }
         UniversalSettingsIntegrationNavGroup().activate()
         SettingsIntegrationGroup().activate()
