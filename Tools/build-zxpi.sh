@@ -7,25 +7,21 @@
 #
 # Output: packages/zxPluginsInject.dylib
 
+#!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-MOD_DIR="$REPO_DIR/modules/zxPluginsInject"
+REPO_DIR="$(pwd)"
+OUT_DIR="$REPO_DIR/packages"
+OUT_FILE="$OUT_DIR/zxPluginsInject.dylib"
 
-[ -n "${THEOS:-}" ] || { echo "THEOS env not set" >&2; exit 1; }
-[ -d "$MOD_DIR" ] || { echo "modules/zxPluginsInject missing" >&2; exit 1; }
+# set this to the direct URL of the dylib (recommended: a GitHub Release asset URL)
+URL="https://github.com/asdfzxcvbn/zxPluginsInject/releases/download/v1.0.1/zxPluginsInject.dylib"
 
-cd "$MOD_DIR"
-[ "${1:-}" = "--clean" ] && make clean >/dev/null 2>&1 || true
-make FINALPACKAGE=1 >/dev/null
+mkdir -p "$OUT_DIR"
 
-DYLIB_OUT="$MOD_DIR/.theos/obj/zxPluginsInject.dylib"
-[ -f "$DYLIB_OUT" ] || { echo "zxPluginsInject.dylib not produced" >&2; exit 1; }
+# macos runners have curl by default (more reliable than wget)
+curl -L --fail --retry 3 --output "$OUT_FILE" "$URL"
 
-mkdir -p "$REPO_DIR/packages"
-cp "$DYLIB_OUT" "$REPO_DIR/packages/zxPluginsInject.dylib"
-install_name_tool -id "@rpath/zxPluginsInject.dylib" \
-    "$REPO_DIR/packages/zxPluginsInject.dylib" 2>/dev/null || true
+echo "Saved: $OUT_FILE"
+ls -lh "$OUT_FILE"
 
-echo "$REPO_DIR/packages/zxPluginsInject.dylib"
