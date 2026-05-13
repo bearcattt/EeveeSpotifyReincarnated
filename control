@@ -1,9 +1,9 @@
-Package: com.jaydenjcpyryuk.spotify
+Package: com.eevee.spotify
 Name: EeveeSpotify
 Version: 6.6.3
 Architecture: iphoneos-arm
 Description: A tweak to get Spotify Premium for free, just like Spotilife
-Maintainer: 
-Author: jaydenjcpy, faroukbmiled
+Maintainer: jaydenjcpy
+Author: Eevee
 Section: Tweaks
 Depends: ${ORION}, firmware (>= 14.0)
