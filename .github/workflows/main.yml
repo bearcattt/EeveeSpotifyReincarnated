@@ -1,5 +1,4 @@
-name: Build Rootless Deb and inject .deb into IPA
-
+name: Build IPA (PATCHED)
 on:
   workflow_dispatch:
     inputs:
