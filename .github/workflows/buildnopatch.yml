@@ -87,11 +87,11 @@ jobs:
             exit 1
           fi
 
-      - name: Build zxPluginsInject.dylib
-        if: ${{ inputs.ipa_url != '' }}
-        run: |
-          chmod +x Tools/build-zxpi.sh
-          Tools/build-zxpi.sh
+      #- name: Build zxPluginsInject.dylib
+       # if: ${{ inputs.ipa_url != '' }}
+        #run: |
+         # chmod +x Tools/build-zxpi.sh
+          # Tools/build-zxpi.sh
 
       - name: Fetch OpenSpotifySafariExtension.appex
         if: ${{ inputs.ipa_url != '' }}
