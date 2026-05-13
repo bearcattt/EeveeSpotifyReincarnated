@@ -199,7 +199,7 @@ func eeveeEnvFlag(_ name: String) -> Bool {
 }
 
 struct EeveeSpotify: Tweak {
-    static let version = "6.6.2"
+    static let version = "6.6.3"
     static let buildNumber = "1"
     
     static var hookTarget: VersionHookTarget {
