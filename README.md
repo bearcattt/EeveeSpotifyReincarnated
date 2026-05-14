@@ -2,9 +2,9 @@
 
 # EeveeSpotify
 
-**Updated and maintained by [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled)  - Current Version 9.1.40**
+**Updated and maintained by [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled)  - Current Version 9.1.44**
 
-**Last updated 4/22/26**
+**Last updated 5/14/26**
 
 This tweak makes Spotify think you have a Premium subscription, granting free listening, just like Spotilife, and provides some additional features like custom lyrics.
 
