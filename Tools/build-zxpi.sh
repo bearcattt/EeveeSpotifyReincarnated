@@ -1,27 +1,40 @@
 #!/usr/bin/env bash
-# Build zxPluginsInject.dylib — LC-injection sideload-compat shim.
+# Build zxPluginsInject.dylib from source in modules/zxPluginsInject.
 #
-# Loaded before main() in the resigned Spotify binary (and any .appex still
-# present) via ipapatch. Provides keychain redirection and app-group
-# fallbacks for sideloaded builds at a layer the host app can't avoid.
+# Used by GitHub Actions and local builds. Output: packages/zxPluginsInject.dylib
 #
-# Output: packages/zxPluginsInject.dylib
+# Requires THEOS (CI installs it in a prior step). Falls back to ~/theos locally.
 
-#!/usr/bin/env bash
 set -euo pipefail
 
 REPO_DIR="$(pwd)"
-OUT_DIR="$REPO_DIR/packages"
-OUT_FILE="$OUT_DIR/zxPluginsInject.dylib"
+MOD_DIR="$REPO_DIR/modules/zxPluginsInject"
 
-# set this to the direct URL of the dylib (recommended: a GitHub Release asset URL)
-URL="https://github.com/asdfzxcvbn/zxPluginsInject/releases/download/v1.0.1/zxPluginsInject.dylib"
+if [ -z "${THEOS:-}" ]; then
+    if [ -d "$HOME/theos" ]; then
+        export THEOS="$HOME/theos"
+    else
+        echo "THEOS not set and ~/theos not found" >&2
+        exit 1
+    fi
+fi
 
-mkdir -p "$OUT_DIR"
+cd "$MOD_DIR"
 
-# macos runners have curl by default (more reliable than wget)
-curl -L --fail --retry 3 --output "$OUT_FILE" "$URL"
+if [ "${1:-}" = "--clean" ]; then
+    make clean >/dev/null 2>&1 || true
+fi
 
-echo "Saved: $OUT_FILE"
-ls -lh "$OUT_FILE"
+make FINALPACKAGE=1
 
+DYLIB_OUT="$MOD_DIR/.theos/obj/zxPluginsInject.dylib"
+[ -f "$DYLIB_OUT" ] || { echo "zxPluginsInject.dylib not produced" >&2; exit 1; }
+
+mkdir -p "$REPO_DIR/packages"
+cp "$DYLIB_OUT" "$REPO_DIR/packages/zxPluginsInject.dylib"
+
+install_name_tool -id "@rpath/zxPluginsInject.dylib" \
+    "$REPO_DIR/packages/zxPluginsInject.dylib" 2>/dev/null || true
+
+echo "Saved: $REPO_DIR/packages/zxPluginsInject.dylib"
+ls -lh "$REPO_DIR/packages/zxPluginsInject.dylib"

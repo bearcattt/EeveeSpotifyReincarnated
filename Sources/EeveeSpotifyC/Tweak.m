@@ -5,7 +5,7 @@ static void writeDebugLog(NSString *message) {
     NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"eeveespotify_debug.log"];
     NSString *timestamp = [[NSDate date] description];
     NSString *logMessage = [NSString stringWithFormat:@"[%@] %@\n", timestamp, message];
-    
+
     if ([[NSFileManager defaultManager] fileExistsAtPath:logPath]) {
         NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:logPath];
         [fileHandle seekToEndOfFile];
@@ -19,10 +19,10 @@ static void writeDebugLog(NSString *message) {
 __attribute__((constructor)) static void init() {
     @try {
         NSLog(@"[EeveeSpotify] Initializing tweak...");
-        
+
         // Initialize Orion - do not remove this line.
         orion_init();
-        
+
         NSLog(@"[EeveeSpotify] Tweak initialized successfully");
         // Custom initialization code goes here.
     }

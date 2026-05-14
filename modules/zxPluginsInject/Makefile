@@ -5,7 +5,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME := zxPluginsInject
 
-$(TWEAK_NAME)_FILES := $(shell find src -type f -name "*.*m") ../fishhook/fishhook.c
+$(TWEAK_NAME)_FILES := SideloadFix.xm ../fishhook/fishhook.c
 $(TWEAK_NAME)_CFLAGS := -fobjc-arc -Os
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR := internal
 
