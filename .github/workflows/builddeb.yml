@@ -1,4 +1,4 @@
-name: Build .debs + Draft Release
+name: Build rootless .deb + Draft Release
 
 on:
   workflow_dispatch:
@@ -81,11 +81,6 @@ jobs:
           cp -f "$ARM64_DEB" "Outputs/DEBS/$(basename "$ARM64_DEB" .deb)_arm64.deb"
           echo "ARM64_DEB=Outputs/DEBS/$(basename "$ARM64_DEB" .deb)_arm64.deb" >> "$GITHUB_ENV"
 
-      - name: Build arm (armv7) .deb
-        run: |
-          make clean || true
-          make package FINALPACKAGE=1 ARCHS="armv7"
-          ls -la packages || true
 
       - name: Save arm artifact
         run: |
@@ -110,5 +105,5 @@ jobs:
           prerelease: ${{ inputs.prerelease == 'true' }}
           files: |
             ${{ env.ARM64_DEB }}
-            ${{ env.ARM_DEB }}
+    
 
