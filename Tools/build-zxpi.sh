@@ -12,7 +12,7 @@ OUT_DIR="$REPO_DIR/packages"
 OUT_FILE="$OUT_DIR/zxPluginsInject.dylib"
 
 # set this to the direct URL of the dylib (recommended: a GitHub Release asset URL)
-URL="https://github.com/<OWNER>/<REPO>/releases/download/<TAG>/zxPluginsInject.dylib"
+URL="https://github.com/asdfzxcvbn/zxPluginsInject/releases/download/v1.0.1/zxPluginsInject.dylib"
 
 mkdir -p "$OUT_DIR"
 
