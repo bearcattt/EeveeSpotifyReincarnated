@@ -56,6 +56,17 @@ jobs:
         run: |
           make build-eeveeswiftprotobuf
 
+      - name: Install EeveeSwiftProtobuf into Theos
+        run: |
+          # Find the built framework (adjust if your build script outputs somewhere specific)
+          FW=$(find "$GITHUB_WORKSPACE" -name "EeveeSwiftProtobuf.framework" -type d | head -n 1)
+          [ -n "$FW" ] || { echo "EeveeSwiftProtobuf.framework not found" >&2; exit 1; }
+
+          mkdir -p "$THEOS/vendor/lib"
+          rm -rf "$THEOS/vendor/lib/EeveeSwiftProtobuf.framework"
+          cp -R "$FW" "$THEOS/vendor/lib/EeveeSwiftProtobuf.framework"
+
+
       - name: Build arm64 .deb
         run: |
           make clean || true
