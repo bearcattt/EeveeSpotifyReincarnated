@@ -15,12 +15,12 @@
                     "Developer"
                 ]
             },
-            { "username": "M0d-4",
+            {
+                "username": "M0d-4",
                 "roles": [
-                    "Contributor",
-                    "Developer"
+                    "Contributor"
                 ]
-            },     
+            },
             {
                 "username": "Meeep1",
                 "roles": [
