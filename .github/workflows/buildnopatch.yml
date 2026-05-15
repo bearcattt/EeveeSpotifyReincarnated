@@ -141,7 +141,9 @@ jobs:
           rm -rf "Payload/Spotify.app/Plugins/OpenSpotifySafariExtension.appex"
           cp -R "$OPENSPOTIFY_APPEX" "Payload/Spotify.app/Plugins/OpenSpotifySafariExtension.appex"
 
-          # Repack only the Payload folder back into the IPA
+          # IMPORTANT: rebuild IPA from scratch so removed entries don't linger
+          # (zip update does not delete old entries reliably).
+          rm -f "$(basename "$OUT_IPA")"
           zip -qry "$(basename "$OUT_IPA")" Payload
           rm -rf Payload
 
@@ -154,10 +156,20 @@ jobs:
           cd "$(dirname "$OUT_IPA")"
           rm -rf Payload
           unzip -q "$(basename "$OUT_IPA")"
-          if [ -d "Payload/Spotify.app/Watch" ]; then
-            rm -rf Payload/Spotify.app/Watch
-            zip -qry "$(basename "$OUT_IPA")" Payload
-          fi
+
+          # Remove Watch-related bundles that can trigger AltStore/SideStore validation errors.
+          rm -rf "Payload/Spotify.app/Watch" "Payload/Spotify.app/WatchKitSupport" || true
+
+          # IMPORTANT: rebuild IPA from scratch so removed entries don't linger.
+          rm -f "$(basename "$OUT_IPA")"
+          zip -qry "$(basename "$OUT_IPA")" Payload
+
+          # Belt-and-suspenders: also drop any lingering zip entries (no-op if none).
+          zip -d "$(basename "$OUT_IPA")" \
+            "Payload/Spotify.app/Watch/*" \
+            "Payload/Spotify.app/WatchKitSupport/*" \
+            >/dev/null 2>&1 || true
+
           rm -rf Payload
 
       - name: Upload IPA artifact
