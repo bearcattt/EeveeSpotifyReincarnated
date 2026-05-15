@@ -56,21 +56,23 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     
     func requestAnonymousMusixmatchToken() {
         isRequestingMusixmatchToken = true
-                
+
         AnonymousTokenHelper.requestAnonymousMusixmatchToken()
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isRequestingMusixmatchToken = false
-                
+
                 switch completion {
-                case .failure(_):
-                    break  // Button remains available in UI for retry
+                case .failure(let error):
+                    PopUpHelper.showPopUp(
+                        delayed: false,
+                        message: "request_anonymous_token_failed".localized + "\n\n\(error.localizedDescription)",
+                        buttonText: "OK".uiKitLocalized
+                    )
                 case .finished:
                     UserDefaults.lyricsSource = .musixmatch
-                    break
                 }
             }, receiveValue: { [weak self] token in
-                // Save directly to UserDefaults, bypassing the hex-format validation
-                // in setupBindings which would reject anonymous tokens
                 UserDefaults.musixmatchToken = token
                 self?.musixmatchToken = token
             })
