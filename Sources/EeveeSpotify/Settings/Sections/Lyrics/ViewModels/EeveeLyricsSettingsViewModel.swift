@@ -59,7 +59,7 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
                 
                 switch completion {
                 case .failure(_):
-                    self?.musixmatchTokenInputAlertPublisher.send(false)
+                    self?.musixmatchTokenInputAlertPublisher.send(true)
                 case .finished:
                     UserDefaults.lyricsSource = .musixmatch
                     break
