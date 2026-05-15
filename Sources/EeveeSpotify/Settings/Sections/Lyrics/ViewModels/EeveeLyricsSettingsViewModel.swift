@@ -43,10 +43,14 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     }
     
     func getMusixmatchToken(_ input: String) -> String? {
+        // Standard user token: 54-char hex
         if input ~= "^[a-f0-9]{54}$" {
             return input
         }
-        
+        // Anonymous/guest token: longer alphanumeric string from Musixmatch API
+        if input ~= "^[a-zA-Z0-9]{20,}$" {
+            return input
+        }
         return nil
     }
     
@@ -65,6 +69,9 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
                     break
                 }
             }, receiveValue: { [weak self] token in
+                // Save directly to UserDefaults, bypassing the hex-format validation
+                // in setupBindings which would reject anonymous tokens
+                UserDefaults.musixmatchToken = token
                 self?.musixmatchToken = token
             })
             .store(in: &cancellables)
