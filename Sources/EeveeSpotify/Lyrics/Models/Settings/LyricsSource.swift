@@ -7,9 +7,8 @@ enum LyricsSource: Int, CaseIterable, CustomStringConvertible {
     case petit
     case notReplaced
     
-    // All sources enabled now that we have reliable metadata fetching
     public static var allCases: [LyricsSource] {
-        return [.musixmatch]
+        return [.musixmatch, .lrclib, .genius, .petit]
     }
 
     // swift 5.8 compatible
