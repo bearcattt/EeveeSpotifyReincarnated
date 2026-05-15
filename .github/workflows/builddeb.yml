@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Git tag to create/use for the draft release (e.g. v6.6.3)"
+        description: "Git tag to create/use for the draft release (e.g. v6.6.3.1)"
         required: true
-        default: "v6.6.3"
+        default: "v6.6.3.1"
       release_name:
         description: "Release title (optional)"
         required: false
@@ -80,14 +80,6 @@ jobs:
           ARM64_DEB="$(ls -t packages/*.deb | head -n 1)"
           cp -f "$ARM64_DEB" "Outputs/DEBS/$(basename "$ARM64_DEB" .deb)_arm64.deb"
           echo "ARM64_DEB=Outputs/DEBS/$(basename "$ARM64_DEB" .deb)_arm64.deb" >> "$GITHUB_ENV"
-
-
-      - name: Save arm artifact
-        run: |
-          mkdir -p Outputs/DEBS
-          ARM_DEB="$(ls -t packages/*.deb | head -n 1)"
-          cp -f "$ARM_DEB" "Outputs/DEBS/$(basename "$ARM_DEB" .deb)_arm.deb"
-          echo "ARM_DEB=Outputs/DEBS/$(basename "$ARM_DEB" .deb)_arm.deb" >> "$GITHUB_ENV"
 
       - name: Upload deb artifacts
         uses: actions/upload-artifact@v4
