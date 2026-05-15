@@ -201,7 +201,11 @@ func eeveeEnvFlag(_ name: String) -> Bool {
 struct EeveeSpotify: Tweak {
     static let version = "6.6.3.1"
     static let buildNumber = "1"
-    static let repoSlug = "M0d-4/EeveeSpotifyReincarnated"
+    #if REPO_SLUG
+    static let repoSlug = REPO_SLUG
+    #else
+    static let repoSlug = "jaydenjcpy/EeveeSpotifyReincarnated"
+    #endif
     
     static var hookTarget: VersionHookTarget {
         let version = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String
