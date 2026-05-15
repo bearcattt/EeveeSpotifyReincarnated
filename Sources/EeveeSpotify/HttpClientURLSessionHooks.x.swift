@@ -42,9 +42,15 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
         }
 
         guard let buffer = URLSessionHelper.shared.obtainData(for: url) else {
+            // We decided this URL should be modified, but we never captured any body bytes.
+            // This can happen with 0-byte responses, early completion, redirects, or concurrent callbacks.
+            // IMPORTANT: Always forward completion, otherwise Spotify may hang and get watchdog-killed.
             if url.isCustomize, let cached = SpotifyResponsePatcher.cachedCustomizeData {
                 orig.URLSession(session, dataTask: task, didReceiveData: cached)
                 orig.URLSession(session, task: task, didCompleteWithError: nil)
+            } else {
+                writeDebugLog("[HCUS] Missing buffered body for \(url.absoluteString) (taskId=\(task.taskIdentifier))")
+                orig.URLSession(session, task: task, didCompleteWithError: error)
             }
             return
         }
