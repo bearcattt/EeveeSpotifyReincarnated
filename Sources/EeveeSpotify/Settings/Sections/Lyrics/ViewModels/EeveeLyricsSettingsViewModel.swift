@@ -59,7 +59,7 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
                 
                 switch completion {
                 case .failure(_):
-                    self?.musixmatchTokenInputAlertPublisher.send(true)
+                    break  // Button remains available in UI for retry
                 case .finished:
                     UserDefaults.lyricsSource = .musixmatch
                     break
