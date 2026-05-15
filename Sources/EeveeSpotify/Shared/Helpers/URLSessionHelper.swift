@@ -2,9 +2,12 @@ import UIKit
 
 class URLSessionHelper {
     static let shared = URLSessionHelper()
-    
-    private var requestsMap: [URL:Data]
-    
+
+    /// Accessed from URLSession delegate callbacks which may be concurrent.
+    /// Keep all mutations synchronized to avoid races / EXC_BAD_ACCESS.
+    private let queue = DispatchQueue(label: "com.eeveespotify.urlsessionhelper.requestsMap")
+    private var requestsMap: [URL: Data]
+
     private init() {
         self.requestsMap = [:]
     }
@@ -26,13 +29,16 @@ class URLSessionHelper {
     }
     
     func setOrAppend(_ data: Data, for url: URL) {
-        var loadedData = requestsMap[url] ?? Data()
-        loadedData.append(data)
-        
-        requestsMap[url] = loadedData
+        queue.sync {
+            var loadedData = requestsMap[url] ?? Data()
+            loadedData.append(data)
+            requestsMap[url] = loadedData
+        }
     }
-    
+
     func obtainData(for url: URL) -> Data? {
-        return requestsMap.removeValue(forKey: url)
+        queue.sync {
+            requestsMap.removeValue(forKey: url)
+        }
     }
 }
