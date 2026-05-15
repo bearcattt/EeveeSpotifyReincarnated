@@ -56,6 +56,10 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             if url.isCustomize, let cached = SpotifyResponsePatcher.cachedCustomizeData {
                 orig.URLSession(session, dataTask: task, didReceiveData: cached)
                 orig.URLSession(session, task: task, didCompleteWithError: nil)
+            } else {
+                writeDebugLog("[DL] Missing buffered body for \(url.absoluteString) (taskId=\(task.taskIdentifier))")
+                // Always forward completion; otherwise Spotify may hang and get watchdog-killed.
+                orig.URLSession(session, task: task, didCompleteWithError: error)
             }
             return
         }
