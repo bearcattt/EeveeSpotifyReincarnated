@@ -124,13 +124,20 @@ jobs:
           [ -n "$FRAMEWORK_SRC" ] && INJECT+=("$FRAMEWORK_SRC")
           [ -n "$BUNDLE_SRC" ]    && INJECT+=("$BUNDLE_SRC")
 
-          # cyan: -du strips appex/Watch (we don't have a wildcard profile),
-          # -m 15.0 sets MinimumOSVersion floor, -c 9 max compression.
+          # -d enable documents, -u drop UISupportedDevices, -m floor MinOS,
+          # -c max compress. Watch + native appex strip happens in the next
+          # step via Tools/strip-ipa.sh.
           cyan -i ${{ github.workspace }}/spotify.ipa -o "$OUT" \
                -f "${INJECT[@]}" -c 9 -m 15.0 -du
           echo "OUT_IPA=$OUT" >> $GITHUB_ENV
 
-      - name: Add OpenSpotifySafariExtension.appex to IPA Plugins
+      - name: Strip incompatible bundles
+        if: ${{ inputs.ipa_url != '' }}
+        run: |
+          chmod +x Tools/strip-ipa.sh
+          Tools/strip-ipa.sh "$OUT_IPA"
+
+      - name: Add OpenSpotifySafariExtension.appex
         if: ${{ inputs.ipa_url != '' }}
         run: |
           cd "$(dirname "$OUT_IPA")"
@@ -138,39 +145,14 @@ jobs:
           unzip -q "$(basename "$OUT_IPA")"
 
           mkdir -p "Payload/Spotify.app/Plugins"
-          rm -rf "Payload/Spotify.app/Plugins/OpenSpotifySafariExtension.appex"
           cp -R "$OPENSPOTIFY_APPEX" "Payload/Spotify.app/Plugins/OpenSpotifySafariExtension.appex"
 
-          # IMPORTANT: rebuild IPA from scratch so removed entries don't linger
-          # (zip update does not delete old entries reliably).
           rm -f "$(basename "$OUT_IPA")"
           zip -qry "$(basename "$OUT_IPA")" Payload
           rm -rf Payload
 
       # NOTE: Removed the post-injection ipapatch step.
       # If you later need it back, restore the "LC-inject zxPluginsInject (ipapatch)" step.
-
-      - name: Strip Watch app (if any survived)
-        if: ${{ inputs.ipa_url != '' }}
-        run: |
-          cd "$(dirname "$OUT_IPA")"
-          rm -rf Payload
-          unzip -q "$(basename "$OUT_IPA")"
-
-          # Remove Watch-related bundles that can trigger AltStore/SideStore validation errors.
-          rm -rf "Payload/Spotify.app/Watch" "Payload/Spotify.app/WatchKitSupport" || true
-
-          # IMPORTANT: rebuild IPA from scratch so removed entries don't linger.
-          rm -f "$(basename "$OUT_IPA")"
-          zip -qry "$(basename "$OUT_IPA")" Payload
-
-          # Belt-and-suspenders: also drop any lingering zip entries (no-op if none).
-          zip -d "$(basename "$OUT_IPA")" \
-            "Payload/Spotify.app/Watch/*" \
-            "Payload/Spotify.app/WatchKitSupport/*" \
-            >/dev/null 2>&1 || true
-
-          rm -rf Payload
 
       - name: Upload IPA artifact
         if: ${{ inputs.ipa_url != '' }}

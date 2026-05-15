@@ -40,7 +40,7 @@ class SpotifySessionDelegateBootstrapHook: ClassHook<NSObject>, SpotifySessionDe
         }
         
         if url.isBootstrap {
-            URLSessionHelper.shared.setOrAppend(data, for: url)
+            URLSessionHelper.shared.setOrAppend(data, for: task)
             return
         }
 
@@ -60,7 +60,7 @@ class SpotifySessionDelegateBootstrapHook: ClassHook<NSObject>, SpotifySessionDe
         }
         
         if error == nil && url.isBootstrap {
-            guard let buffer = URLSessionHelper.shared.obtainData(for: url) else {
+            guard let buffer = URLSessionHelper.shared.obtainData(for: task) else {
                 orig.URLSession(session, task: task, didCompleteWithError: error)
                 return
             }

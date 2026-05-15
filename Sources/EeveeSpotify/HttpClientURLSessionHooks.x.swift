@@ -41,7 +41,7 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
-        guard let buffer = URLSessionHelper.shared.obtainData(for: url) else {
+        guard let buffer = URLSessionHelper.shared.obtainData(for: task) else {
             // We decided this URL should be modified, but we never captured any body bytes.
             // This can happen with 0-byte responses, early completion, redirects, or concurrent callbacks.
             // IMPORTANT: Always forward completion, otherwise Spotify may hang and get watchdog-killed.
@@ -119,7 +119,7 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
         guard let url = task.currentRequest?.url else { return }
         if SpotifyResponsePatcher.shouldBlock(url) { return }
         if SpotifyResponsePatcher.shouldModify(url) {
-            URLSessionHelper.shared.setOrAppend(data, for: url)
+            URLSessionHelper.shared.setOrAppend(data, for: task)
             return
         }
         orig.URLSession(session, dataTask: task, didReceiveData: data)
