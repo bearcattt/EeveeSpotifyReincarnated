@@ -38,7 +38,6 @@ struct ContributorRow: View {
                 .resizable()
         } else {
             ImageView(urlString: "https://github.com/\(contributor.username).png")
-                .frame(width: 40, height: 40)
         }
     }
 }
@@ -78,14 +77,17 @@ struct EeveeContributorsSheetView: View {
         }
     }
     
+    private var sectionsWithMod4: [EeveeContributorSection] {
+        guard !sections.isEmpty else { return sections }
+        var result = sections
+        // Inject Mod4 at the top of the first section
+        result[0].contributors.insert(mod4Contributor, at: 2)
+        return result
+    }
+    
     private var contributorsList: some View {
         List {
-            // Hardcoded Mod4 section at the top
-            Section(header: Text("Special Thanks")) {
-                ContributorRow(contributor: mod4Contributor)
-            }
-            
-            ForEach(sections, id: \.title) { section in
+            ForEach(sectionsWithMod4, id: \.title) { section in
                 Section(header: Text(section.title)) {
                     let contributors = section.shuffled ? section.contributors.shuffled() : section.contributors
                     ForEach(contributors, id: \.username) { contributor in
