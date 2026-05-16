@@ -1,5 +1,6 @@
 import Orion
 import SwiftUI
+import MediaPlayer
 
 //
 
@@ -61,6 +62,21 @@ private func loadCustomLyricsForTrackId(_ trackId: String) throws -> Lyrics {
         }
 
         if !hasMetadata {
+            // Try MPNowPlayingInfoCenter (always available, version-independent)
+            if let info = MPNowPlayingInfoCenter.default().nowPlayingInfo,
+               let title = info[MPMediaItemPropertyTitle] as? String,
+               let artist = info[MPMediaItemPropertyArtist] as? String,
+               !title.isEmpty, !artist.isEmpty {
+                currentTitle = title
+                currentArtist = artist
+                hasMetadata = true
+                capturedTrackId = trackId
+                capturedTrackTitle = title
+                capturedArtistName = artist
+            }
+        }
+
+        if !hasMetadata {
             if let token = spotifyAccessToken {
                 if let info = fetchTrackDetails(trackId: trackId, token: token) {
                     currentTitle = info.title
@@ -71,9 +87,7 @@ private func loadCustomLyricsForTrackId(_ trackId: String) throws -> Lyrics {
                     capturedTrackId = trackId
                     capturedTrackTitle = currentTitle
                     capturedArtistName = currentArtist
-                } else {
                 }
-            } else {
             }
         }
     }

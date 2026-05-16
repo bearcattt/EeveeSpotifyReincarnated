@@ -66,8 +66,7 @@ extension EeveeLyricsSettingsViewModel {
                 guard let self = self else { return }
                 
                 if newSource == .musixmatch && self.musixmatchToken.isEmpty {
-                    self.musixmatchTokenInputAlertPublisher.send(true)
-                    return
+                    // Token field is always visible in UI - no alert needed
                 }
                 
                 if newSource == .lrclib {

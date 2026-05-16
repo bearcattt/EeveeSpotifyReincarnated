@@ -61,6 +61,8 @@ jobs:
           Tools/SwiftProtobufBuild/build-eeveeswiftprotobuf.sh
 
       - name: Build .deb (rootless)
+        env:
+          REPO_SLUG: ${{ github.repository }}
         run: |
           THEOS_PACKAGE_SCHEME=rootless make package FINALPACKAGE=1
           DEB_PATH=$(find packages -name "com.eevee.spotify_*.deb" | head -1)

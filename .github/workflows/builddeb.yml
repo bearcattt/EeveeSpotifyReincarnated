@@ -68,6 +68,8 @@ jobs:
 
 
       - name: Build arm64 .deb
+        env:
+          REPO_SLUG: ${{ github.repository }}
         run: |
           make clean || true
           make package FINALPACKAGE=1 ARCHS="arm64"
@@ -97,5 +99,3 @@ jobs:
           prerelease: ${{ inputs.prerelease == 'true' }}
           files: |
             ${{ env.ARM64_DEB }}
-    
-

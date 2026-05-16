@@ -28,6 +28,7 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     }
     
     var cancellables = Set<AnyCancellable>()
+    private var tokenRequestCancellable: AnyCancellable?
 
     init() {
         setupBindings()
@@ -43,30 +44,50 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     }
     
     func getMusixmatchToken(_ input: String) -> String? {
+        // Standard user token: 54-char hex
         if input ~= "^[a-f0-9]{54}$" {
             return input
         }
-        
+        // Anonymous/guest token: longer alphanumeric string from Musixmatch API
+        if input ~= "^[a-zA-Z0-9]{20,}$" {
+            return input
+        }
         return nil
     }
     
     func requestAnonymousMusixmatchToken() {
+        guard !isRequestingMusixmatchToken else { return }
         isRequestingMusixmatchToken = true
-                
-        AnonymousTokenHelper.requestAnonymousMusixmatchToken()
+
+        // Cancel any previous request
+        tokenRequestCancellable = AnonymousTokenHelper.requestAnonymousMusixmatchToken()
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isRequestingMusixmatchToken = false
-                
+
                 switch completion {
-                case .failure(_):
-                    self?.musixmatchTokenInputAlertPublisher.send(false)
+                case .failure(let error):
+                    let msg: String
+                    if let tokenError = error as? AnonymousTokenError {
+                        switch tokenError {
+                        case .invalidResponse:
+                            msg = "Failed to get token. Musixmatch may be rate-limiting this device. Try again later."
+                        }
+                    } else {
+                        msg = error.localizedDescription
+                    }
+                    PopUpHelper.showPopUp(
+                        delayed: false,
+                        message: msg,
+                        buttonText: "OK".uiKitLocalized
+                    )
                 case .finished:
-                    UserDefaults.lyricsSource = .musixmatch
                     break
                 }
             }, receiveValue: { [weak self] token in
+                UserDefaults.musixmatchToken = token
                 self?.musixmatchToken = token
+                UserDefaults.lyricsSource = .musixmatch
             })
-            .store(in: &cancellables)
     }
 }
