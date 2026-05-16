@@ -165,6 +165,12 @@ jobs:
           fi
           rm -rf Payload
 
+      - name: Stage alternate app icons
+        if: ${{ inputs.ipa_url != '' }}
+        run: |
+          chmod +x Tools/alt-icons.sh
+          Tools/alt-icons.sh "$OUT_IPA"
+
       - name: Upload IPA artifact
         if: ${{ inputs.ipa_url != '' }}
         uses: actions/upload-artifact@v4

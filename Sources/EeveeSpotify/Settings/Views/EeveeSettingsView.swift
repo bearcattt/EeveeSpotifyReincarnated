@@ -102,7 +102,20 @@ struct EeveeSettingsView: View {
                     imageSystemName: "sparkle"
                 )
             }
-            
+
+            Button {
+                pushSettingsController(
+                    with: EeveeAppIconPickerView(),
+                    title: "App Icon"
+                )
+            } label: {
+                NavigationSectionView(
+                    color: .pink,
+                    title: "App Icon",
+                    imageSystemName: "app.badge.fill"
+                )
+            }
+
             //
             
             Section(header: Text("debug_title".localized), footer: Text("debug_section_footer".localized)) {
