@@ -28,6 +28,7 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     }
     
     var cancellables = Set<AnyCancellable>()
+    private var tokenRequestCancellable: AnyCancellable?
 
     init() {
         setupBindings()
@@ -55,27 +56,38 @@ class EeveeLyricsSettingsViewModel: ObservableObject {
     }
     
     func requestAnonymousMusixmatchToken() {
+        guard !isRequestingMusixmatchToken else { return }
         isRequestingMusixmatchToken = true
 
-        AnonymousTokenHelper.requestAnonymousMusixmatchToken()
+        // Cancel any previous request
+        tokenRequestCancellable = AnonymousTokenHelper.requestAnonymousMusixmatchToken()
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isRequestingMusixmatchToken = false
 
                 switch completion {
                 case .failure(let error):
+                    let msg: String
+                    if let tokenError = error as? AnonymousTokenError {
+                        switch tokenError {
+                        case .invalidResponse:
+                            msg = "Failed to get token. Musixmatch may be rate-limiting this device. Try again later."
+                        }
+                    } else {
+                        msg = error.localizedDescription
+                    }
                     PopUpHelper.showPopUp(
                         delayed: false,
-                        message: "request_anonymous_token_failed".localized + "\n\n\(error.localizedDescription)",
+                        message: msg,
                         buttonText: "OK".uiKitLocalized
                     )
                 case .finished:
-                    UserDefaults.lyricsSource = .musixmatch
+                    break
                 }
             }, receiveValue: { [weak self] token in
                 UserDefaults.musixmatchToken = token
                 self?.musixmatchToken = token
+                UserDefaults.lyricsSource = .musixmatch
             })
-            .store(in: &cancellables)
     }
 }
