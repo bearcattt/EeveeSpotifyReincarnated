@@ -1,93 +1,94 @@
 import SwiftUI
-import Combine
 
-class EeveeLyricsSettingsViewModel: ObservableObject {
-    @Published var lyricsSource = UserDefaults.lyricsSource
+struct EeveeLyricsSettingsView: View {
+    @StateObject var viewModel = EeveeLyricsSettingsViewModel()
     
-    @Published var lyricsOptions = UserDefaults.lyricsOptions {
-        didSet { UserDefaults.lyricsOptions = lyricsOptions }
-    }
-    
-    @Published var musixmatchToken = UserDefaults.musixmatchToken
-    @Published var isRequestingMusixmatchToken = false
-    @Published var musixmatchTokenInputAlertPublisher = PassthroughSubject<Bool, Never>()
-    var isMusixmatchTokenValid: Bool { getMusixmatchToken(musixmatchToken) != nil }
-    
-    @Published var showMusixmatchInvalidLanguageWarning = false
-    @Published var lrclibURLState = LrclibURLState.default
-    
-    var animationValues: [AnyHashable] {
-        [
-            lyricsSource,
-            lyricsOptions,
-            isMusixmatchTokenValid,
-            isRequestingMusixmatchToken,
-            lrclibURLState,
-            showMusixmatchInvalidLanguageWarning
-        ]
-    }
-    
-    var cancellables = Set<AnyCancellable>()
-    private var tokenRequestCancellable: AnyCancellable?
-
-    init() {
-        setupBindings()
-    }
-    
-    func getMusixmatchTokenFromDebugInfo(_ debugInfo: String) -> String? {
-        if let match = debugInfo.firstMatch("\\[UserToken\\]: ([a-f0-9]+)"),
-            let tokenRange = Range(match.range(at: 1), in: debugInfo) {
-            return String(debugInfo[tokenRange])
-        }
-        
-        return nil
-    }
-    
-    func getMusixmatchToken(_ input: String) -> String? {
-        // Standard user token: 54-char hex
-        if input ~= "^[a-f0-9]{54}$" {
-            return input
-        }
-        // Anonymous/guest token: longer alphanumeric string from Musixmatch API
-        if input ~= "^[a-zA-Z0-9]{20,}$" {
-            return input
-        }
-        return nil
-    }
-    
-    func requestAnonymousMusixmatchToken() {
-        guard !isRequestingMusixmatchToken else { return }
-        isRequestingMusixmatchToken = true
-
-        // Cancel any previous request
-        tokenRequestCancellable = AnonymousTokenHelper.requestAnonymousMusixmatchToken()
-            .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
-                self?.isRequestingMusixmatchToken = false
-
-                switch completion {
-                case .failure(let error):
-                    let msg: String
-                    if let tokenError = error as? AnonymousTokenError {
-                        switch tokenError {
-                        case .invalidResponse:
-                            msg = "Failed to get token. Musixmatch may be rate-limiting this device. Try again later."
-                        }
-                    } else {
-                        msg = error.localizedDescription
-                    }
-                    PopUpHelper.showPopUp(
-                        delayed: false,
-                        message: msg,
-                        buttonText: "OK".uiKitLocalized
-                    )
-                case .finished:
-                    break
+    var body: some View {
+        List {
+            lyricsSourceSection()
+            
+            if viewModel.lyricsSource != .notReplaced {
+                if viewModel.lyricsSource != .genius {
+                    geniusFallbackSection()
                 }
-            }, receiveValue: { [weak self] token in
-                UserDefaults.musixmatchToken = token
-                self?.musixmatchToken = token
-                UserDefaults.lyricsSource = .musixmatch
-            })
+                
+                hideOnErrorSection()
+                romanizedLyricsSection()
+                
+                if viewModel.lyricsSource == .musixmatch {
+                    musixmatchLanguageSection()
+                }
+            }
+            
+            NonIPadSpacerView()
+        }
+        .onReceive(viewModel.musixmatchTokenInputAlertPublisher) { showAnonymousTokenOption in
+            showMusixmatchTokenAlert(UserDefaults.lyricsSource, showAnonymousTokenOption)
+        }
+        .listStyle(GroupedListStyle())
+        .disabled(viewModel.isRequestingMusixmatchToken)
+        .animation(.default, value: viewModel.animationValues)
+    }
+    
+    @ViewBuilder private func geniusFallbackSection() -> some View {
+        Section {
+            Toggle(
+                "genius_fallback".localized,
+                isOn: $viewModel.lyricsOptions.geniusFallback
+            )
+            
+            if viewModel.lyricsOptions.geniusFallback {
+                Toggle(
+                    "show_fallback_reasons".localized,
+                    isOn: $viewModel.lyricsOptions.showFallbackReasons
+                )
+            }
+        } footer: {
+            Text("genius_fallback_description"
+                .localizeWithFormat(viewModel.lyricsSource.description))
+        }
+    }
+    
+    @ViewBuilder private func romanizedLyricsSection() -> some View {
+        Section {
+            Toggle(
+                "romanized_lyrics".localized,
+                isOn: $viewModel.lyricsOptions.romanization
+            )
+        } footer: {
+            Text("romanized_lyrics_description".localized)
+        }
+    }
+    
+    @ViewBuilder private func hideOnErrorSection() -> some View {
+        Section {
+            Toggle(
+                "hide_lyrics_on_error".localized,
+                isOn: $viewModel.lyricsOptions.hideOnError
+            )
+        } footer: {
+            Text("hide_lyrics_on_error_description".localized)
+        }
+    }
+    
+    @ViewBuilder private func musixmatchLanguageSection() -> some View {
+        Section {
+            HStack {
+                Text("musixmatch_language".localized)
+                
+                Spacer()
+                
+                TextField("en", text: $viewModel.lyricsOptions.musixmatchLanguage)
+                    .frame(maxWidth: 20)
+                    .foregroundColor(.gray)
+            }
+            .icon(
+                "exclamationmark.triangle.fill",
+                color: .yellow,
+                when: $viewModel.showMusixmatchInvalidLanguageWarning
+            )
+        } footer: {
+            Text("musixmatch_language_description".localized)
+        }
     }
 }
