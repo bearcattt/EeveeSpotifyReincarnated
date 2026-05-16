@@ -13,6 +13,8 @@ xcuserdata/
 .theos/
 packages/
 
+Sources/EeveeSpotify/Generated/
+
 # IPA / decrypted-source build artifacts
 *.ipa
 "Decrypted IPA/"
