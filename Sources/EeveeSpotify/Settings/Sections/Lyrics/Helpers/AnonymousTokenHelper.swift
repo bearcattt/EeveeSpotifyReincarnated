@@ -2,74 +2,61 @@ import UIKit
 import Combine
 
 struct AnonymousTokenHelper {
-    private static let endpoints = [
-        "https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
-        "https://apic.musixmatch.com/ws/1.1/token.get?app_id=\(UIDevice.current.musixmatchAppId)"
-    ]
+    private static let apiUrl = "https://apic.musixmatch.com"
+
+    private static func fetchToken(appId: String) throws -> String {
+        let urlString = "\(apiUrl)/ws/1.1/token.get?app_id=\(appId)"
+        let url = URL(string: urlString)!
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var responseData: Data?
+        var responseError: Error?
+
+        let task = URLSession.shared.dataTask(with: URLRequest(url: url)) { data, _, error in
+            responseData = data
+            responseError = error
+            semaphore.signal()
+        }
+        task.resume()
+        semaphore.wait()
+
+        if let error = responseError {
+            throw error
+        }
+
+        guard
+            let data = responseData,
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let message = json["message"] as? [String: Any],
+            let body = message["body"] as? [String: Any],
+            let userToken = body["user_token"] as? String,
+            !userToken.isEmpty,
+            userToken != "UpgradeRequired"
+        else {
+            throw AnonymousTokenError.invalidResponse
+        }
+
+        return userToken
+    }
 
     static func requestAnonymousMusixmatchToken() -> AnyPublisher<String, Error> {
-        Future<String, Error> { promise in
-            Task {
-                var lastError: Error = AnonymousTokenError.invalidResponse
+        let appIds = [
+            UIDevice.current.musixmatchAppId,
+            UIDevice.current.isIpad ? "mac-ios-v2.0" : "mac-ios-ipad-v1.0",
+            "web-desktop-app-v1.0"
+        ]
 
-                for endpoint in endpoints {
-                    guard let url = URL(string: endpoint) else { continue }
-
-                    var request = URLRequest(url: url)
-                    request.timeoutInterval = 15
-                    request.setValue(
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        forHTTPHeaderField: "User-Agent"
-                    )
-                    request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-                    do {
-                        let (data, response) = try await URLSession.shared.data(for: request)
-
-                        // Log raw response for debugging
-                        let rawString = String(data: data, encoding: .utf8) ?? "non-utf8"
-                        NSLog("[EeveeSpotify] AnonymousToken raw response (\(endpoint)): \(rawString.prefix(300))")
-
-                        if let http = response as? HTTPURLResponse {
-                            NSLog("[EeveeSpotify] AnonymousToken HTTP status: \(http.statusCode)")
-                            guard http.statusCode == 200 else { continue }
+        return Deferred {
+            Future<String, Error> { promise in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    for appId in appIds {
+                        if let token = try? fetchToken(appId: appId) {
+                            promise(.success(token))
+                            return
                         }
-
-                        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                            NSLog("[EeveeSpotify] AnonymousToken: failed to parse JSON")
-                            continue
-                        }
-
-                        guard let message = json["message"] as? [String: Any] else {
-                            NSLog("[EeveeSpotify] AnonymousToken: no 'message' key")
-                            continue
-                        }
-
-                        // body can be [] (array) when rate-limited — guard against that
-                        guard let body = message["body"] as? [String: Any] else {
-                            NSLog("[EeveeSpotify] AnonymousToken: body is not a dict (likely rate-limited)")
-                            continue
-                        }
-
-                        guard let userToken = body["user_token"] as? String,
-                              !userToken.isEmpty,
-                              userToken != "UpgradeRequired" else {
-                            NSLog("[EeveeSpotify] AnonymousToken: invalid user_token value")
-                            continue
-                        }
-
-                        NSLog("[EeveeSpotify] AnonymousToken: success, token length \(userToken.count)")
-                        promise(.success(userToken))
-                        return
-
-                    } catch {
-                        NSLog("[EeveeSpotify] AnonymousToken: request error: \(error)")
-                        lastError = error
-                        continue
                     }
+                    promise(.failure(AnonymousTokenError.invalidResponse))
                 }
-
-                promise(.failure(lastError))
             }
         }
         .eraseToAnyPublisher()
