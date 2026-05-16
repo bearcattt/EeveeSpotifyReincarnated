@@ -2,9 +2,9 @@
 
 # EeveeSpotifyReincarnated
 
-**Updated and maintained by [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled)  - Current Version 9.1.44**
+**Updated and maintained by [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled)  - Current Version 9.1.48**
 
-**Last updated 5/14/26**
+**Last updated 5/16/26**
 
 This tweak makes Spotify think you have a Premium subscription, granting free listening, just like Spotilife, and provides some additional features like custom lyrics.
 
@@ -13,7 +13,7 @@ This tweak makes Spotify think you have a Premium subscription, granting free li
 
 ## Custom Lyrics Support
 
-**Spotify 9.1.44** - Full custom lyrics functionality is available with the following provider:
+**Spotify 9.1.48** - Full custom lyrics functionality is available with the following provider:
 
 - **Musixmatch** (Currently enabled)
 
