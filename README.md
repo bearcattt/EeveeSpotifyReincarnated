@@ -21,7 +21,7 @@ This tweak makes Spotify think you have a Premium subscription, granting free li
 - **Genius**
 
 > [!NOTE]
-> Other providers (Genius, LRCLIB, PetitLyrics) are available in the code but disabled in build.*
+> All providers work now
 
 ## How to build an EeveeSpotify IPA using Github actions
 > [!NOTE]
