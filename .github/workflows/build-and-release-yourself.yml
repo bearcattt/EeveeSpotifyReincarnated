@@ -112,6 +112,11 @@ jobs:
           fi
           rm -rf Payload
 
+      - name: Stage alternate app icons
+        run: |
+          chmod +x Tools/alt-icons.sh
+          Tools/alt-icons.sh "$OUT_IPA"
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:

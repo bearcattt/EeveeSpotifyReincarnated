@@ -156,6 +156,12 @@ jobs:
       # NOTE: Removed the post-injection ipapatch step.
       # If you later need it back, restore the "LC-inject zxPluginsInject (ipapatch)" step.
 
+      - name: Stage alternate app icons
+        if: ${{ inputs.ipa_url != '' }}
+        run: |
+          chmod +x Tools/alt-icons.sh
+          Tools/alt-icons.sh "$OUT_IPA"
+
       - name: Upload IPA artifact
         if: ${{ inputs.ipa_url != '' }}
         uses: actions/upload-artifact@v4
