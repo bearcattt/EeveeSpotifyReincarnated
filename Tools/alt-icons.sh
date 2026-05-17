@@ -72,7 +72,7 @@ patch_ipa() {
     abs="$(cd "$(dirname "$ipa")" && pwd)/$(basename "$ipa")"
     tmp="$(mktemp -d -t alt-icons.XXXXXX)"
     trap 'rm -rf "$tmp"' RETURN
-    ( cd "$tmp" && unzip -q "$ipa" )
+    ( cd "$tmp" && unzip -q "$abs" )
     app=$(find "$tmp/Payload" -maxdepth 2 -name '*.app' -type d | head -1)
     [ -n "$app" ] || { echo "[alt-icons] no .app in $ipa" >&2; return 1; }
     patch_app "$app"
