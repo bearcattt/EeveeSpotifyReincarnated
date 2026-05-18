@@ -4,43 +4,60 @@ import Foundation
 
 enum BrowsitaSectionStripper {
 
-    private static let adFieldNumbers: Set<UInt64> = [6, 7]
+    private static let adMarkers: [[UInt8]] = [
+        "spotify:ad:", "ad-formats", "advertisement", "brand-ad",
+        "sponsored", "marquee", "promoted", "home-ads", "adsproduct",
+    ].map { Array($0.utf8) }
+
+    private static let keepMarkers: [[UInt8]] = [
+        "filter", "chip", "pillar", "browse:chips",
+    ].map { Array($0.utf8) }
+
+    static var verboseLog: Bool = false
 
     static func shouldHandle(_ url: URL) -> Bool {
         let p = url.path.lowercased()
+        // /casita/v1/feeds is flat tab-chip list, parser would mis-walk it.
+        if p.hasSuffix("/casita/v1/feeds") || p.contains("/casita/v1/feeds/") { return false }
         return p.contains("/browsita/") || p.contains("/casita/")
     }
 
-    static func strip(_ data: Data) -> Data? {
+    static func strip(_ data: Data, url: URL? = nil) -> Data? {
+        let path = url?.path ?? "?"
+
         var cursor = 0
-        guard data.count >= 2, data[cursor] == 0x0a else { return nil }
+        guard data.count >= 2, data[cursor] == 0x0a else { return bail(path, "no-outer-tag") }
         cursor += 1
-        guard let (outerLen, outerLenBytes) = readVarint(data, at: cursor) else { return nil }
+        guard let (outerLen, outerLenBytes) = readVarint(data, at: cursor) else { return bail(path, "bad-outer-varint") }
         cursor += outerLenBytes
         let containerStart = cursor
         let containerEnd = cursor + Int(outerLen)
-        guard containerEnd <= data.count else { return nil }
+        guard containerEnd <= data.count else { return bail(path, "outer-len-overflow") }
 
         var newContainer = Data()
-        var dropped = 0
+        var dropped = 0, kept = 0, idx = 0
         var c = containerStart
 
         while c < containerEnd {
-            guard c < data.count, data[c] == 0x0a else { return nil }
+            guard c < data.count, data[c] == 0x0a else { return bail(path, "section-tag-mismatch idx=\(idx)") }
             let sectionTagStart = c
             c += 1
-            guard let (secLen, secLenBytes) = readVarint(data, at: c) else { return nil }
+            guard let (secLen, secLenBytes) = readVarint(data, at: c) else { return bail(path, "bad-section-varint idx=\(idx)") }
             c += secLenBytes
-            let sectionContentStart = c
-            let sectionContentEnd = c + Int(secLen)
-            guard sectionContentEnd <= containerEnd else { return nil }
+            let contentStart = c
+            let contentEnd = c + Int(secLen)
+            guard contentEnd <= containerEnd else { return bail(path, "section-len-overflow idx=\(idx)") }
 
-            if sectionContainsAdField(data, start: sectionContentStart, end: sectionContentEnd) {
+            if let markers = adHits(data, start: contentStart, end: contentEnd) {
+                if verboseLog { writeDebugLog("[STRIP] DROP \(path) idx=\(idx) size=\(secLen) hits=\(markers.joined(separator: ","))") }
                 dropped += 1
             } else {
-                newContainer.append(data.subdata(in: sectionTagStart..<sectionContentEnd))
+                if verboseLog { writeDebugLog("[STRIP] KEEP \(path) idx=\(idx) size=\(secLen)") }
+                newContainer.append(data.subdata(in: sectionTagStart..<contentEnd))
+                kept += 1
             }
-            c = sectionContentEnd
+            c = contentEnd
+            idx += 1
         }
 
         guard dropped > 0 else { return nil }
@@ -52,29 +69,36 @@ enum BrowsitaSectionStripper {
         if containerEnd < data.count {
             result.append(data.subdata(in: containerEnd..<data.count))
         }
+        writeDebugLog("[STRIP] \(path) dropped=\(dropped) kept=\(kept) \(data.count)->\(result.count)")
         return result
     }
 
-    private static func sectionContainsAdField(_ data: Data, start: Int, end: Int) -> Bool {
-        var c = start
-        while c < end {
-            guard let (tag, tagBytes) = readVarint(data, at: c) else { return false }
-            c += tagBytes
-            let fieldNum = tag >> 3
-            let wire = tag & 7
-            if adFieldNumbers.contains(fieldNum) { return true }
-            switch wire {
-            case 0:
-                guard let (_, vb) = readVarint(data, at: c) else { return false }
-                c += vb
-            case 1: c += 8
-            case 2:
-                guard let (len, lb) = readVarint(data, at: c) else { return false }
-                c += lb + Int(len)
-            case 5: c += 4
-            default: return false
+    private static func adHits(_ data: Data, start: Int, end: Int) -> [String]? {
+        guard end > start, end <= data.count else { return nil }
+        let slice = data[start..<end]
+        for keep in keepMarkers where containsBytes(slice, needle: keep) { return nil }
+        let hits = adMarkers.compactMap {
+            containsBytes(slice, needle: $0) ? String(decoding: $0, as: UTF8.self) : nil
+        }
+        return hits.isEmpty ? nil : hits
+    }
+
+    private static func bail(_ path: String, _ reason: String) -> Data? {
+        if verboseLog { writeDebugLog("[STRIP] bail \(path) reason=\(reason)") }
+        return nil
+    }
+
+    private static func containsBytes(_ haystack: Data.SubSequence, needle: [UInt8]) -> Bool {
+        guard !needle.isEmpty, haystack.count >= needle.count else { return false }
+        let last = haystack.endIndex - needle.count
+        var i = haystack.startIndex
+        while i <= last {
+            var match = true
+            for k in 0..<needle.count {
+                if haystack[i + k] != needle[k] { match = false; break }
             }
-            if c > end { return false }
+            if match { return true }
+            i += 1
         }
         return false
     }

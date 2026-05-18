@@ -1,5 +1,14 @@
 #import <Orion/Orion.h>
 #import <Foundation/Foundation.h>
+#import <objc/message.h>
+#import "Tweak.h"
+
+void EeveeSBInvokeSeekDouble(id target, SEL selector, double argument) {
+    if (!target || !selector) return;
+    typedef id (*SeekFn)(id, SEL, double);
+    SeekFn fn = (SeekFn)objc_msgSend;
+    (void)fn(target, selector, argument);
+}
 
 static void writeDebugLog(NSString *message) {
     NSString *logPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"eeveespotify_debug.log"];

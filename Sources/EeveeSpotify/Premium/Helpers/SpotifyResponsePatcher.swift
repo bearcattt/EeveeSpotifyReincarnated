@@ -128,7 +128,7 @@ enum SpotifyResponsePatcher {
             return PatchResult(data: Data(), tag: .dacEmpty)
         }
         if BrowsitaSectionStripper.shouldHandle(url) {
-            if let stripped = BrowsitaSectionStripper.strip(buffer) {
+            if let stripped = BrowsitaSectionStripper.strip(buffer, url: url) {
                 return PatchResult(data: stripped, tag: .casitaStrip)
             }
             return nil

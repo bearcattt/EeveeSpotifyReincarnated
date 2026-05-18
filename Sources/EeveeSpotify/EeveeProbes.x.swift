@@ -11,10 +11,17 @@ private let traceNet:   Bool = false
 private let traceNotif: Bool = false
 // TESTING: dumps ad-class methods/ivars on launch.
 private let traceAds:   Bool = false
+// TESTING: dumps SPTPlayer* surface + widens notif filter to include
+// "player/track/position" so SponsorBlock can find episode-uri/seek path.
+private let traceSB:    Bool = false
 
 private let importantNotifSubstrings: [String] = [
     "premium", "product", "account", "session", "login", "logout",
     "authState", "authSession", "subscription"
+]
+
+private let sbNotifSubstrings: [String] = [
+    "player", "track", "position", "episode", "playback", "queue"
 ]
 
 class TaskResumeProbeHook: ClassHook<NSObject> {
@@ -45,6 +52,7 @@ class NotifPostHook: ClassHook<NSObject> {
         let name = notification.name.rawValue
         let lower = name.lowercased()
         let important = importantNotifSubstrings.contains { lower.contains($0) }
+            || (traceSB && sbNotifSubstrings.contains { lower.contains($0) })
         if traceNotif || important {
             NSLog("[PROBE][NOTIF] %@", name)
         }
@@ -55,6 +63,7 @@ class NotifPostHook: ClassHook<NSObject> {
         let name = aName.rawValue
         let lower = name.lowercased()
         let important = importantNotifSubstrings.contains { lower.contains($0) }
+            || (traceSB && sbNotifSubstrings.contains { lower.contains($0) })
         if traceNotif || important {
             NSLog("[PROBE][NOTIF] %@", name)
         }
@@ -65,6 +74,7 @@ class NotifPostHook: ClassHook<NSObject> {
         let name = aName.rawValue
         let lower = name.lowercased()
         let important = importantNotifSubstrings.contains { lower.contains($0) }
+            || (traceSB && sbNotifSubstrings.contains { lower.contains($0) })
         if traceNotif || important {
             let uiKeys = aUserInfo?.keys.map { "\($0)" }.joined(separator: ",") ?? ""
             NSLog("[PROBE][NOTIF] %@ userInfo=[%@]", name, uiKeys)
@@ -107,6 +117,14 @@ private let adClassesToDump: [String] = [
 ]
 
 private let runClassDump = false
+
+private let sbClassesToDump: [String] = [
+    "SPTVideoCoordinatorPlayerRouter",
+    "SPTVideoCoordinatorDataSavingVideoDisabler",
+    "AdsPlatform_ComScoreImpl.ComScorePlayerObserver",
+    "_TtC24AdsPlatform_ComScoreImpl22ComScorePlayerObserver",
+    "Player_ReactiveValueKit.ReactivePlayerState",
+]
 private var classDumpDone = false
 
 private func dumpClass(_ name: String) {
@@ -150,7 +168,7 @@ private func dumpClass(_ name: String) {
 }
 
 private func dumpClassesOnce() {
-    guard runClassDump || traceAds, !classDumpDone else { return }
+    guard runClassDump || traceAds || traceSB, !classDumpDone else { return }
     classDumpDone = true
     if runClassDump {
         for n in classesToDump { dumpClass(n) }
@@ -160,6 +178,12 @@ private func dumpClassesOnce() {
         NSLog("[PROBE][ADS] === ad class dump begin ===")
         for n in adClassesToDump { dumpClass(n) }
         NSLog("[PROBE][ADS] === ad class dump end ===")
+    }
+    // SponsorBlock: dump player classes to find episode-uri / position / seek path.
+    if traceSB {
+        NSLog("[PROBE][SB] === sponsorblock class dump begin ===")
+        for n in sbClassesToDump { dumpClass(n) }
+        NSLog("[PROBE][SB] === sponsorblock class dump end ===")
     }
 
     // objc_copyClassList returns AutoreleasingUnsafeMutablePointer; subscripting
@@ -189,10 +213,11 @@ private func dumpClassesOnce() {
 func activateEeveeProbes() {
     let netOn = traceNet
     let notifOn = true
-    NSLog("[PROBE] activating: net=%@ notif=%@ ads=%@",
+    NSLog("[PROBE] activating: net=%@ notif=%@ ads=%@ sb=%@",
           netOn ? "on" : "off",
           notifOn ? "on" : "off",
-          traceAds ? "on" : "off")
+          traceAds ? "on" : "off",
+          traceSB ? "on" : "off")
     if netOn { ProbeNetGroup().activate() }
     if notifOn { ProbeNotifGroup().activate() }
     dumpClassesOnce()

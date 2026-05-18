@@ -116,8 +116,21 @@ struct EeveeSettingsView: View {
                 )
             }
 
+            Button {
+                pushSettingsController(
+                    with: SponsorBlockSettingsView(),
+                    title: "SponsorBlock (BETA)"
+                )
+            } label: {
+                NavigationSectionView(
+                    color: .red,
+                    title: "SponsorBlock (BETA)",
+                    imageSystemName: "forward.end.fill"
+                )
+            }
+
             //
-            
+
             Section(header: Text("debug_title".localized), footer: Text("debug_section_footer".localized)) {
                 Button {
                     let logPath = NSTemporaryDirectory() + "eeveespotify_debug.log"
@@ -209,6 +222,13 @@ struct EeveeSettingsView: View {
                     }
                     .foregroundColor(.red)
                 }
+            }
+
+            Section {
+                Color.clear
+                    .frame(height: 90)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
         }
         .listStyle(GroupedListStyle())

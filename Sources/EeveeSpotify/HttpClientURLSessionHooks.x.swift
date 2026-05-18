@@ -80,6 +80,10 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
                 orig.URLSession(session, task: task, didCompleteWithError: nil)
                 return
             }
+            // patch() returned nil — no transform, but didReceiveData already
+            // suppressed the original. Replay or consumer hangs.
+            orig.URLSession(session, dataTask: task, didReceiveData: buffer)
+            orig.URLSession(session, task: task, didCompleteWithError: nil)
         } catch {
             orig.URLSession(session, task: task, didCompleteWithError: error)
         }

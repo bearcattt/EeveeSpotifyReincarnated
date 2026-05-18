@@ -374,6 +374,7 @@ struct EeveeSpotify: Tweak {
             }
             NSLog("[EeveeSpotify] Initialization complete for 9.1.x")
             activateEeveeProbes()
+            activateSponsorBlock()
             return
         }
 
