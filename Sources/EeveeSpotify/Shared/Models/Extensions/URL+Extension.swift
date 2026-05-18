@@ -136,7 +136,9 @@ extension URL {
         if host.contains("doubleclick") ||
            host.contains("googlesyndication") ||
            host == "ad.spotify.com" ||
-           host == "ads.spotify.com" {
+           host == "ads.spotify.com" ||
+           host == "aet.spotify.com" ||
+           host.hasPrefix("aet.") {
             return true
         }
         

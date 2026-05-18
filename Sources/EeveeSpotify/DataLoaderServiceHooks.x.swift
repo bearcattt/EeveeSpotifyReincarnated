@@ -33,6 +33,10 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
+        if CasitaResponseProbe.shouldProbe(url) {
+            CasitaResponseProbe.flush(task, url: url)
+        }
+
         if SpotifyResponsePatcher.shouldBlock(url) {
             orig.URLSession(session, dataTask: task, didReceiveData: SpotifyResponsePatcher.blockedResponseData(for: url))
             orig.URLSession(session, task: task, didCompleteWithError: nil)
@@ -139,6 +143,9 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
         // Suppress original data for endpoints we'll replace in
         // didCompleteWithError — otherwise the consumer sees both.
         if SpotifyResponsePatcher.shouldBlock(url) { return }
+        if CasitaResponseProbe.shouldProbe(url) {
+            CasitaResponseProbe.append(data, for: task)
+        }
         if SpotifyResponsePatcher.shouldModify(url) {
             URLSessionHelper.shared.setOrAppend(data, for: task)
             return

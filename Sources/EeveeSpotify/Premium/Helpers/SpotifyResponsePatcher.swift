@@ -47,6 +47,7 @@ enum SpotifyResponsePatcher {
                 url.isPremiumPlanRow || url.isPremiumBadge || url.isPlanOverview ||
                 isDAC
             ))
+            || BrowsitaSectionStripper.shouldHandle(url)
     }
 
     static func blockedResponseData(for url: URL) -> Data {
@@ -84,6 +85,7 @@ enum SpotifyResponsePatcher {
         case planBadge   = "YourPremiumBadge"
         case planOverview = "PlanOverview"
         case dacEmpty    = "dac"
+        case casitaStrip = "casitaStrip"
     }
 
     struct PatchResult {
@@ -124,6 +126,12 @@ enum SpotifyResponsePatcher {
         if url.path.lowercased().contains("/dac/view/v1/") {
             // Empty body = "no ad to render" to the DAC consumer.
             return PatchResult(data: Data(), tag: .dacEmpty)
+        }
+        if BrowsitaSectionStripper.shouldHandle(url) {
+            if let stripped = BrowsitaSectionStripper.strip(buffer) {
+                return PatchResult(data: stripped, tag: .casitaStrip)
+            }
+            return nil
         }
         return nil
     }

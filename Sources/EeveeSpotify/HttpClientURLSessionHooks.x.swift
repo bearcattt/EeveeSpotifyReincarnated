@@ -25,6 +25,10 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
+        if CasitaResponseProbe.shouldProbe(url) {
+            CasitaResponseProbe.flush(task, url: url)
+        }
+
         if SpotifyResponsePatcher.shouldBlock(url) {
             orig.URLSession(session, dataTask: task, didReceiveData: SpotifyResponsePatcher.blockedResponseData(for: url))
             orig.URLSession(session, task: task, didCompleteWithError: nil)
@@ -118,6 +122,9 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
     ) {
         guard let url = task.currentRequest?.url else { return }
         if SpotifyResponsePatcher.shouldBlock(url) { return }
+        if CasitaResponseProbe.shouldProbe(url) {
+            CasitaResponseProbe.append(data, for: task)
+        }
         if SpotifyResponsePatcher.shouldModify(url) {
             URLSessionHelper.shared.setOrAppend(data, for: task)
             return
