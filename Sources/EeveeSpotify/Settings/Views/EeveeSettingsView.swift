@@ -105,19 +105,6 @@ struct EeveeSettingsView: View {
 
             Button {
                 pushSettingsController(
-                    with: EeveeAppIconPickerView(),
-                    title: "App Icon"
-                )
-            } label: {
-                NavigationSectionView(
-                    color: .pink,
-                    title: "App Icon",
-                    imageSystemName: "app.badge.fill"
-                )
-            }
-
-            Button {
-                pushSettingsController(
                     with: SponsorBlockSettingsView(),
                     title: "SponsorBlock (BETA)"
                 )
@@ -126,6 +113,19 @@ struct EeveeSettingsView: View {
                     color: .red,
                     title: "SponsorBlock (BETA)",
                     imageSystemName: "forward.end.fill"
+                )
+            }
+
+            Button {
+                pushSettingsController(
+                    with: EeveeAppIconPickerView(),
+                    title: "App Icon"
+                )
+            } label: {
+                NavigationSectionView(
+                    color: .pink,
+                    title: "App Icon",
+                    imageSystemName: "app.badge.fill"
                 )
             }
 
