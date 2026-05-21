@@ -373,6 +373,7 @@ struct EeveeSpotify: Tweak {
                 writeDebugLog("[INIT] Settings_PlatformImpl.SettingsListViewController missing")
             }
             NSLog("[EeveeSpotify] Initialization complete for 9.1.x")
+            TrueShuffleHook.install()
             activateEeveeProbes()
             activateSponsorBlock()
             return
