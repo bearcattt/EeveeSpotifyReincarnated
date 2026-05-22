@@ -30,7 +30,9 @@ struct SponsorBlockSubmitView: View {
 
     var body: some View {
         NavigationView {
-            Form {
+            ZStack {
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                Form {
                 Section(header: Text("Times"), footer: Text("Both sliders move independently. Out-of-order values are corrected on submit.")) {
                     timeRow(label: "Start", value: $startValue, isStart: true)
                     timeRow(label: "End",   value: $endValue,   isStart: false)
@@ -83,7 +85,9 @@ struct SponsorBlockSubmitView: View {
                     presentationMode.wrappedValue.dismiss()
                 }) { Text("Discard").foregroundColor(.red) }
             )
+            }
         }
+        .preferredColorScheme(.dark)
     }
 
     private var categoryPicker: some View {

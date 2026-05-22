@@ -6,13 +6,9 @@ private let segmentBarTag = "EeveeSBBar"
 final class SponsorBlockOverlayContainer: UIView {
     var segmentFrames: [(uuid: String, frame: CGRect)] = []
 
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        for s in segmentFrames {
-            let hit = s.frame.insetBy(dx: -10, dy: -10)
-            if hit.contains(point) { return self }
-        }
-        return nil
-    }
+    // Visual only. Touches must reach the slider for pan-on-thumb to work
+    // even with thumb sitting on a bar; tap/long-press handled by slider recognizers.
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { nil }
 }
 
 final class SponsorBlockOverlay: NSObject, UIGestureRecognizerDelegate {
@@ -20,10 +16,37 @@ final class SponsorBlockOverlay: NSObject, UIGestureRecognizerDelegate {
 
     private var trackedSliders: NSHashTable<UIView> = NSHashTable.weakObjects()
     private var slidersWithLongPress: NSHashTable<UIView> = NSHashTable.weakObjects()
+    private var slidersWithSegmentTap: NSHashTable<UIView> = NSHashTable.weakObjects()
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         true
+    }
+
+    // x-axis only: bar is ~3pt tall, finger center is far above it.
+    private func segmentUUIDForTouch(_ touch: UITouch, on slider: UIView) -> String? {
+        let p = touch.location(in: slider)
+        for sv in slider.subviews where sv.accessibilityIdentifier == "EeveeSBOverlay" {
+            guard let container = sv as? SponsorBlockOverlayContainer else { continue }
+            let xInContainer = slider.convert(p, to: container).x
+            for s in container.segmentFrames {
+                let xPad = max(8, s.frame.width * 0.15)
+                if xInContainer >= s.frame.minX - xPad && xInContainer <= s.frame.maxX + xPad {
+                    return s.uuid
+                }
+            }
+        }
+        return nil
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldReceive touch: UITouch) -> Bool {
+        guard let slider = gestureRecognizer.view else { return true }
+        let onSegment = segmentUUIDForTouch(touch, on: slider) != nil
+        // Long-press = submit anywhere except on a bar; tap = segment-action only on bar.
+        if gestureRecognizer is UILongPressGestureRecognizer { return !onSegment }
+        if gestureRecognizer is UITapGestureRecognizer { return onSegment }
+        return true
     }
 
     override init() {
@@ -59,6 +82,7 @@ final class SponsorBlockOverlay: NSObject, UIGestureRecognizerDelegate {
         }
 
         installLongPressIfNeeded(on: slider)
+        installSegmentTapIfNeeded(on: slider)
 
         let snap = SponsorBlockSkipper.shared.snapshot()
         let opts = UserDefaults.sponsorBlockOptions
@@ -143,28 +167,41 @@ final class SponsorBlockOverlay: NSObject, UIGestureRecognizerDelegate {
             container.addSubview(marker)
         }
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleSegmentTap(_:)))
-        tap.cancelsTouchesInView = true
-        container.addGestureRecognizer(tap)
-
         slider.clipsToBounds = false
         slider.addSubview(container)
         slider.bringSubviewToFront(container)
     }
 
+    private func installSegmentTapIfNeeded(on slider: UIView) {
+        guard !slidersWithSegmentTap.contains(slider) else { return }
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleSegmentTap(_:)))
+        // Suppress Spotify's tap-to-seek under the bar. Drag still works (movement fails tap).
+        tap.cancelsTouchesInView = true
+        tap.delaysTouchesBegan = false
+        tap.delaysTouchesEnded = false
+        tap.delegate = self
+        slider.addGestureRecognizer(tap)
+        slidersWithSegmentTap.add(slider)
+    }
+
     @objc private func handleSegmentTap(_ recog: UITapGestureRecognizer) {
-        guard let container = recog.view as? SponsorBlockOverlayContainer else { return }
-        let point = recog.location(in: container)
+        guard recog.state == .ended, let slider = recog.view else { return }
+        let p = recog.location(in: slider)
         var bestUUID: String?
         var bestDist: CGFloat = .greatestFiniteMagnitude
-        for s in container.segmentFrames {
-            let hit = s.frame.insetBy(dx: -10, dy: -10)
-            guard hit.contains(point) else { continue }
-            let dx = abs(point.x - s.frame.midX)
-            if dx < bestDist { bestDist = dx; bestUUID = s.uuid }
+        for sv in slider.subviews where sv.accessibilityIdentifier == overlayTag {
+            guard let container = sv as? SponsorBlockOverlayContainer else { continue }
+            let xInContainer = slider.convert(p, to: container).x
+            for s in container.segmentFrames {
+                let xPad = max(8, s.frame.width * 0.15)
+                guard xInContainer >= s.frame.minX - xPad,
+                      xInContainer <= s.frame.maxX + xPad else { continue }
+                let dx = abs(xInContainer - s.frame.midX)
+                if dx < bestDist { bestDist = dx; bestUUID = s.uuid }
+            }
         }
         guard let uuid = bestUUID else { return }
-        SponsorBlockReportingUI.presentSegmentActions(uuid: uuid, anchor: container)
+        SponsorBlockReportingUI.presentSegmentActions(uuid: uuid, anchor: slider)
     }
 
     private func installLongPressIfNeeded(on slider: UIView) {
@@ -193,6 +230,10 @@ final class SponsorBlockOverlay: NSObject, UIGestureRecognizerDelegate {
             SponsorBlockToast.shared.show("SponsorBlock: only works on podcast episodes")
             return
         }
+        // Toggle off→on to drop slider's stuck touch tracker (cancelsTouchesInView=false
+        // leaves it thinking finger is still down after action sheet present).
+        view.isUserInteractionEnabled = false
+        DispatchQueue.main.async { view.isUserInteractionEnabled = true }
         SponsorBlockReportingUI.presentSubmissionActions(currentPlayheadSec: snap.position, anchor: view)
     }
 

@@ -111,6 +111,8 @@ enum SponsorBlockReportingUI {
         let view = SponsorBlockEpisodeSegmentsView(episodeID: episodeID)
         let hosting = UIHostingController(rootView: view)
         hosting.modalPresentationStyle = .formSheet
+        hosting.overrideUserInterfaceStyle = .dark
+        hosting.view.backgroundColor = .systemBackground
         if #available(iOS 15.0, *), let sheet = hosting.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
@@ -149,6 +151,8 @@ enum SponsorBlockReportingUI {
         let view = SponsorBlockSubmitView(pending: pending, duration: duration)
         let hosting = UIHostingController(rootView: view)
         hosting.modalPresentationStyle = .formSheet
+        hosting.overrideUserInterfaceStyle = .dark
+        hosting.view.backgroundColor = .systemBackground
         if #available(iOS 15.0, *), let sheet = hosting.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true

@@ -17,20 +17,7 @@ struct SponsorBlockToastAction {
     }
 }
 
-// Only buttons grab touches — everything else (label, padding, background) lets
-// touches pass through to whatever is underneath (NPV slider, etc).
-final class SponsorBlockToastView: UIView {
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let hit = super.hitTest(point, with: event) else { return nil }
-        var node: UIView? = hit
-        while let n = node {
-            if n is UIControl { return hit }
-            if n === self { return nil }
-            node = n.superview
-        }
-        return nil
-    }
-}
+final class SponsorBlockToastView: UIView {}
 
 final class SponsorBlockToast {
     static let shared = SponsorBlockToast()
@@ -73,6 +60,10 @@ final class SponsorBlockToast {
         toast.translatesAutoresizingMaskIntoConstraints = false
         toast.alpha = 0
         toast.isUserInteractionEnabled = true
+
+        let swipe = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeDismiss(_:)))
+        swipe.direction = .up
+        toast.addGestureRecognizer(swipe)
 
         let label = UILabel()
         label.text = message
@@ -138,6 +129,15 @@ final class SponsorBlockToast {
         }
         dismissWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    @objc private func handleSwipeDismiss(_ recog: UISwipeGestureRecognizer) {
+        dismissWork?.cancel()
+        guard let toast = currentView else { return }
+        toast.isUserInteractionEnabled = false
+        UIView.animate(withDuration: 0.18,
+                       animations: { toast.alpha = 0; toast.transform = CGAffineTransform(translationX: 0, y: -30) },
+                       completion: { _ in toast.removeFromSuperview() })
     }
 
     private func dismiss() {

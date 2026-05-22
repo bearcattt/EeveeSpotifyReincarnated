@@ -68,15 +68,18 @@ enum SponsorBlockReporter {
         }
         components.path = "/api/skipSegments"
 
-        var body: [String: Any] = [
-            "videoID":    episodeID,
-            "startTime":  start,
-            "endTime":    end,
+        // service=Spotify requires segments-array form; flat startTime/endTime returns 400.
+        let segment: [String: Any] = [
+            "segment":    [start, end],
             "category":   category,
             "actionType": actionType,
-            "service":    "Spotify",
-            "userID":     UserDefaults.sponsorBlockUserID,
-            "userAgent":  userAgent,
+        ]
+        var body: [String: Any] = [
+            "service":   "Spotify",
+            "videoID":   episodeID,
+            "userID":    UserDefaults.sponsorBlockUserID,
+            "segments":  [segment],
+            "userAgent": userAgent,
         ]
         if let videoDuration, videoDuration > 0 {
             body["videoDuration"] = videoDuration
@@ -93,13 +96,16 @@ enum SponsorBlockReporter {
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         req.setValue("EeveeSpotify-SponsorBlock/1", forHTTPHeaderField: "X-CLIENT-NAME")
 
-        writeDebugLog("[SB][submit] POST \(url.absoluteString) ep=\(episodeID) \(start)..\(end) cat=\(category) act=\(actionType)")
+        let payloadStr = String(data: payload, encoding: .utf8) ?? "<binary>"
+        NSLog("[EeveeSpotify][SB][SUBMIT] POST %@ payload=%@", url.absoluteString, payloadStr)
+        writeDebugLog("[SB][submit] POST \(url.absoluteString) payload=\(payloadStr)")
         session.dataTask(with: req) { data, resp, err in
             if let err { completion(.failure(.transport(err))); return }
             guard let http = resp as? HTTPURLResponse else {
                 completion(.failure(.http(0, nil))); return
             }
             let bodyStr = data.flatMap { String(data: $0, encoding: .utf8) }
+            NSLog("[EeveeSpotify][SB][SUBMIT] <- %d body=%@", http.statusCode, bodyStr ?? "<nil>")
             writeDebugLog("[SB][submit] -> \(http.statusCode) body=\(bodyStr ?? "<nil>")")
             if (200..<300).contains(http.statusCode) {
                 completion(.success(()))

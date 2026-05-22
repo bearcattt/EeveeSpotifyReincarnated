@@ -11,7 +11,9 @@ struct SponsorBlockEpisodeSegmentsView: View {
 
     var body: some View {
         NavigationView {
-            List {
+            ZStack {
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                List {
                 Section(
                     header: Text("Episode \(episodeID) · \(segments.count) segment\(segments.count == 1 ? "" : "s")"),
                     footer: segments.isEmpty ? nil : Text("Tap a row to jump the player to that segment.")
@@ -49,7 +51,9 @@ struct SponsorBlockEpisodeSegmentsView: View {
             .onReceive(NotificationCenter.default.publisher(for: SponsorBlockVotedStore.changedNotification)) { _ in
                 votedMap = SponsorBlockVotedStore.all()
             }
+            }
         }
+        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder

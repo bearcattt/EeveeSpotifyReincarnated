@@ -85,6 +85,7 @@ final class SponsorBlockSkipper {
         queue.sync {
             guard let player = lastPlayer else { return }
             let target = max(0, seconds)
+            preSeekPosition = lastPosition
             pendingSeekTarget = target
             pendingSeekDeadline = uptimeSec() + 2.5
             dismissedUUIDs.removeAll()
@@ -100,6 +101,8 @@ final class SponsorBlockSkipper {
 
     private var pendingSeekTarget: Double?
     private var pendingSeekDeadline: TimeInterval = 0
+    // Pre-seek pos: lets us recognize Spotify's stale callback fired before our seek lands.
+    private var preSeekPosition: Double?
     private var dismissedUUIDs: Set<String> = []
     private var promptedUUIDs: Set<String> = []
     // UUIDs that should be allowed to play through unconditionally — populated by Undo.
@@ -174,10 +177,18 @@ final class SponsorBlockSkipper {
                 if now > self.pendingSeekDeadline { return false }
                 return abs(positionSec - target) < 1.5
             }()
+            // Stale callback: pos matches where we WERE, not the target. User manualSeek differs from both.
+            let isStaleSeekCallback: Bool = {
+                guard let pre = self.preSeekPosition,
+                      let _ = self.pendingSeekTarget,
+                      now <= self.pendingSeekDeadline else { return false }
+                return abs(positionSec - pre) < 1.0
+            }()
 
             var classification = "tick"
             if firstStateForEpisode { classification = "first" }
-            else if isOwnSeek { classification = "ownSeek"; self.pendingSeekTarget = nil }
+            else if isOwnSeek { classification = "ownSeek"; self.pendingSeekTarget = nil; self.preSeekPosition = nil }
+            else if isStaleSeekCallback { classification = "stale" }
             else if abs(delta) > 2.0 { classification = "manualSeek" }
 
             if classification == "manualSeek" || classification == "first" {
@@ -199,8 +210,10 @@ final class SponsorBlockSkipper {
                 }
             }
 
-            self.lastPosition = positionSec
-            self.lastPositionStamp = now
+            if classification != "stale" {
+                self.lastPosition = positionSec
+                self.lastPositionStamp = now
+            }
             self.lastPlaybackSpeed = playbackSpeed > 0 ? playbackSpeed : 1.0
             self.lastIsPlaying = isPlaying
             let normalizedDuration = self.normalizeSeconds(durationRaw, durationHint: durationRaw)
@@ -216,6 +229,7 @@ final class SponsorBlockSkipper {
                 self.promptedUUIDs.removeAll()
                 self.playthroughAllowed.removeAll()
                 self.pendingSeekTarget = nil
+                self.preSeekPosition = nil
                 self.fetchInFlight = false
                 self.broadcastSegments()
                 writeDebugLog("[SB] new episode \(episodeID) (preloaded \(self.currentSegments.count) local)")
@@ -232,7 +246,8 @@ final class SponsorBlockSkipper {
                 self.stopPolling()
             }
 
-            if !(classification == "manualSeek" && options.respectManualSeek) {
+            if classification != "stale",
+               !(classification == "manualSeek" && options.respectManualSeek) {
                 self.checkAndSkip(reportedPosition: positionSec, options: options)
             }
         }
@@ -310,6 +325,7 @@ final class SponsorBlockSkipper {
                 writeDebugLog("[SB] no player ref")
                 return
             }
+            preSeekPosition = lastPosition
             pendingSeekTarget = targetSec
             pendingSeekDeadline = uptimeSec() + 2.5
             seek(player: player, toSeconds: targetSec)
@@ -329,6 +345,7 @@ final class SponsorBlockSkipper {
         queue.async {
             guard let player = self.lastPlayer else { return }
             let target = max(0, seg.start - 0.25)
+            self.preSeekPosition = self.lastPosition
             self.pendingSeekTarget = target
             self.pendingSeekDeadline = self.uptimeSec() + 2.5
             self.playthroughAllowed.insert(seg.uuid)
@@ -348,6 +365,7 @@ final class SponsorBlockSkipper {
                 guard let self else { return }
                 guard let player = self.lastPlayer else { return }
                 let targetSec = seg.end + 0.05
+                self.preSeekPosition = self.lastPosition
                 self.pendingSeekTarget = targetSec
                 self.pendingSeekDeadline = self.uptimeSec() + 2.5
                 self.seek(player: player, toSeconds: targetSec)
