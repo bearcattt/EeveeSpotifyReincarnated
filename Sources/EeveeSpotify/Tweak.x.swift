@@ -233,6 +233,8 @@ struct EeveeSpotify: Tweak {
         // other Eevee path is disabled.
         activateEeveePremiumForce()
 
+        activateEeveeCrossfadeForce()
+
         // TESTING: extended ad blocker (NPV/lyrics ad, home brand-ads, in-stream).
         activateEeveeAdBlockerExtended()
 
