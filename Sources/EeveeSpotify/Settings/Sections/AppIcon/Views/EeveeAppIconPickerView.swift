@@ -28,7 +28,7 @@ struct EeveeAppIconPickerView: View {
                 }
             }
             
-            NonIPadSpacerView()
+            SpacerView()
         }
         .listStyle(InsetGroupedListStyle())
         .onAppear(perform: load)
