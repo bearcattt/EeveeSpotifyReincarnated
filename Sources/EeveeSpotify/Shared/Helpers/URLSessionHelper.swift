@@ -20,7 +20,7 @@ class URLSessionHelper {
     /// drops the entry automatically as soon as the task is gone, which is
     /// exactly the lifetime guarantee the previous design was trying (and
     /// failing) to express.
-    private var requestsMap: NSMapTable<NSURLSessionTask, NSData>
+    private var requestsMap: NSMapTable<URLSessionTask, NSData>
 
     private init() {
         self.requestsMap = NSMapTable.weakToStrongObjects()
@@ -43,16 +43,15 @@ class URLSessionHelper {
     }
 
     func setOrAppend(_ data: Data, for task: URLSessionTask) {
-        let key = task as NSURLSessionTask
         let chunk = data as NSData
         lock.lock(); defer { lock.unlock() }
-        if let existing = requestsMap.object(forKey: key) {
+        if let existing = requestsMap.object(forKey: task) {
             let mutable = NSMutableData(data: existing as Data)
             mutable.append(chunk as Data)
-            requestsMap.setObject(mutable as NSData, forKey: key)
+            requestsMap.setObject(mutable as NSData, forKey: task)
         } else {
             let mutable = NSMutableData(data: chunk as Data)
-            requestsMap.setObject(mutable as NSData, forKey: key)
+            requestsMap.setObject(mutable as NSData, forKey: task)
         }
     }
 
@@ -61,10 +60,9 @@ class URLSessionHelper {
     /// consume the buffer (patched, replayed, or about to fall back to the
     /// original payload).
     func obtainData(for task: URLSessionTask) -> Data? {
-        let key = task as NSURLSessionTask
         lock.lock(); defer { lock.unlock() }
-        guard let raw = requestsMap.object(forKey: key) else { return nil }
-        requestsMap.removeObject(forKey: key)
+        guard let raw = requestsMap.object(forKey: task) else { return nil }
+        requestsMap.removeObject(forKey: task)
         return raw as Data
     }
 
@@ -73,8 +71,7 @@ class URLSessionHelper {
     /// fallback, error path) to prevent unbounded growth on long sessions.
     /// Safe to call on a task that was never buffered — no-op in that case.
     func discardData(for task: URLSessionTask) {
-        let key = task as NSURLSessionTask
         lock.lock(); defer { lock.unlock() }
-        requestsMap.removeObject(forKey: key)
+        requestsMap.removeObject(forKey: task)
     }
 }

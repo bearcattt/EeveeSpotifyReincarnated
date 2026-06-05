@@ -203,10 +203,9 @@ class OauthAccessTokenBridgeHook: ClassHook<NSObject> {
         // the real instance with a stale expiry, which is exactly the kind
         // of state mismatch that surfaces as a delayed crash inside the
         // URLSession completion handler.
-        if let realTarget = (result ?? target) as? NSObject {
-            extendExpiryIvar(on: realTarget)
-            startExpiryExtender(on: realTarget)
-        }
+        let realTarget: NSObject = (result as NSObject?) ?? target
+        extendExpiryIvar(on: realTarget)
+        startExpiryExtender(on: realTarget)
         return result
     }
 

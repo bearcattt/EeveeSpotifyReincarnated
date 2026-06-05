@@ -17,29 +17,28 @@ import Foundation
 enum LyricsPrefetch {
 
     private static let lock = NSLock()
-    private static var pending: NSMapTable<NSURLSessionTask, NSData> =
+    private static var pending: NSMapTable<URLSessionTask, NSData> =
         NSMapTable.weakToStrongObjects()
 
     /// Begin an async custom-lyrics fetch for the given task. Safe to call
     /// multiple times for the same task — a second call is a no-op while a
     /// fetch is already pending.
     static func start(task: URLSessionTask, path: String) {
-        let key = task as NSURLSessionTask
         lock.lock()
-        if pending.object(forKey: key) != nil {
+        if pending.object(forKey: task) != nil {
             lock.unlock()
             return
         }
         // Reserve the slot with an empty NSData so a concurrent `pop` knows
         // a fetch is in flight and waits for the result.
-        pending.setObject(NSData(), forKey: key)
+        pending.setObject(NSData(), forKey: task)
         lock.unlock()
 
         DispatchQueue.global(qos: .userInitiated).async {
             let data = (try? getLyricsDataForCurrentTrack(path)) ?? nil
             let boxed = (data as NSData?) ?? NSData()
             lock.lock()
-            pending.setObject(boxed, forKey: key)
+            pending.setObject(boxed, forKey: task)
             lock.unlock()
         }
     }
@@ -52,10 +51,9 @@ enum LyricsPrefetch {
     /// consumer sees a missing didReceiveData and the URLSession system
     /// reports a task-level error.
     static func pop(_ task: URLSessionTask) -> Data? {
-        let key = task as NSURLSessionTask
         lock.lock()
-        let raw = pending.object(forKey: key)
-        pending.removeObject(forKey: key)
+        let raw = pending.object(forKey: task)
+        pending.removeObject(forKey: task)
         lock.unlock()
         guard let raw, raw.length > 0 else { return nil }
         return raw as Data
