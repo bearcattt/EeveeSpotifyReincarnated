@@ -26,7 +26,7 @@ private let upsellKeywords: [String] = [
     "try free",
     "get premium",
     "start premium",
-    "learn more",         // CTA text on the popup in the screenshot
+    "learn more",
     "upsell",
     "paywall",
     "free tier",
@@ -39,34 +39,30 @@ private func isUpsellText(_ text: String?) -> Bool {
     return upsellKeywords.contains { lower.contains($0) }
 }
 
+// Safely read a String KVC key from an NSObject, returning nil on exception.
+private func kvcString(_ obj: NSObject, _ key: String) -> String? {
+    obj.value(forKeyPath: key) as? String
+}
+
 class SPTEncorePopUpPresenterHook: ClassHook<NSObject> {
     typealias Group = UpsellPopupBlockerGroup
     static let targetName = "SPTEncorePopUpPresenter"
 
     func presentPopUp(_ popUp: NSObject) {
-        // Try to read the dialog model to inspect its text.
-        // SPTEncorePopUpDialog has a `model` property that is an SPTEncorePopUpDialogModel.
-        // SPTEncorePopUpDialogModel has `title` and `descriptionText` / `body`.
-        //
-        // We access them through Dynamic / KVC to stay resilient across Spotify versions.
-        let mirror = Dynamic(popUp)
+        // Read dialog text via KVC.
+        // SPTEncorePopUpDialog exposes a `model` (SPTEncorePopUpDialogModel) with
+        // `title` and `descriptionText`. Fall back to the same keys directly on the
+        // dialog object in case the structure differs between Spotify builds.
+        let modelObj = popUp.value(forKeyPath: "model") as? NSObject
 
-        // Pull title and description from the model if available
-        let modelObj = mirror.model.asObject
-        let titleFromModel   = (modelObj?.value(forKey: "title") as? String)
-                            ?? (modelObj?.value(forKey: "dialogTitle") as? String)
-        let descFromModel    = (modelObj?.value(forKey: "descriptionText") as? String)
-                            ?? (modelObj?.value(forKey: "body") as? String)
-                            ?? (modelObj?.value(forKey: "subtitle") as? String)
-
-        // Fallback: try reading directly off the popUp object
-        let titleDirect = (popUp.value(forKey: "title") as? String)
-                       ?? (popUp.value(forKey: "dialogTitle") as? String)
-        let descDirect  = (popUp.value(forKey: "descriptionText") as? String)
-                       ?? (popUp.value(forKey: "body") as? String)
-
-        let title = titleFromModel ?? titleDirect
-        let desc  = descFromModel  ?? descDirect
+        let title = modelObj.flatMap { kvcString($0, "title") ?? kvcString($0, "dialogTitle") }
+                 ?? kvcString(popUp, "title") ?? kvcString(popUp, "dialogTitle")
+        let desc  = modelObj.flatMap {
+                        kvcString($0, "descriptionText")
+                     ?? kvcString($0, "body")
+                     ?? kvcString($0, "subtitle")
+                    }
+                 ?? kvcString(popUp, "descriptionText") ?? kvcString(popUp, "body")
 
         if isUpsellText(title) || isUpsellText(desc) {
             NSLog("[EeveeSpotify][UpsellBlock] Blocked popup — title=%@ desc=%@",
@@ -74,7 +70,7 @@ class SPTEncorePopUpPresenterHook: ClassHook<NSObject> {
             return  // swallow the call; popup never appears
         }
 
-        // Not an upsell popup — let it through normally (e.g. EeveeSpotify's own popups)
+        // Not an upsell popup — let EeveeSpotify's own popups through normally
         orig.presentPopUp(popUp)
     }
 }
