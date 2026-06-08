@@ -14,7 +14,7 @@ import ObjectiveC.runtime
 
 struct CarPlayCrashFixGroup: HookGroup {}
 
-final class CPInterfaceControllerCarPlayCrashFixHook: ClassHook<NSObject> {
+class CPInterfaceControllerCarPlayCrashFixHook: ClassHook<NSObject> {
     typealias Group = CarPlayCrashFixGroup
     static let targetName = "CPInterfaceController"
 
