@@ -70,7 +70,7 @@ class SPTEncorePopUpPresenterHook: ClassHook<NSObject> {
             return  // swallow the call; popup never appears
         }
 
-        // Not an upsell popup — let EeveeSpotify's own popups through normally
+        
         orig.presentPopUp(popUp)
     }
 }
