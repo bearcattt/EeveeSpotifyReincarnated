@@ -8,19 +8,6 @@ private func showHighQualityPopUp() {
     )
 }
 
-private func showPlaylistDownloadingPopUp(_ isPlaylist: Bool, onSecondaryClick: (() -> Void)?) {
-    PopUpHelper.showPopUp(
-        message: "playlist_downloading_popup".localized,
-        buttonText: "OK".uiKitLocalized,
-        secondButtonText: isPlaylist
-            ? "download_local_playlist".localized
-            : nil,
-        onSecondaryClick: onSecondaryClick
-    )
-}
-
-//
-
 class StreamQualitySettingsSectionHook: ClassHook<NSObject> {
     typealias Group = IOS14PremiumPatchingGroup
     static let targetName = "StreamQualitySettingsSection"
@@ -48,8 +35,6 @@ class ListRowInteractionListenerViewHook: ClassHook<UIView> {
     }
 }
 
-//
-
 class ContentOffliningUIHelperImplementationHook: ClassHook<NSObject> {
     typealias Group = IOS14And15PremiumPatchingGroup
     static let targetName = "Offline_ContentOffliningUIImpl.ContentOffliningUIHelperImplementation"
@@ -61,22 +46,13 @@ class ContentOffliningUIHelperImplementationHook: ClassHook<NSObject> {
         pageIdentifier: NSString,
         pageURI: NSURL
     ) {
-        let isPlaylist = Dynamic.convert(pageURI, to: SPTURL.self)
-            .isPlaylistURL()
-        
-        showPlaylistDownloadingPopUp(
-            isPlaylist,
-            onSecondaryClick: isPlaylist
-                ? {
-                    self.orig.downloadToggledWithCurrentAvailability(
-                        availability,
-                        addAction: addAction,
-                        removeAction: removeAction,
-                        pageIdentifier: pageIdentifier,
-                        pageURI: pageURI
-                    )
-                }
-                : nil
+        OfflineDownloadManager.shared.handleDownloadToggle(uri: pageURI as URL)
+        orig.downloadToggledWithCurrentAvailability(
+            availability,
+            addAction: addAction,
+            removeAction: removeAction,
+            pageIdentifier: pageIdentifier,
+            pageURI: pageURI
         )
     }
 }
@@ -93,23 +69,14 @@ class ContentOffliningUIHelperImplementationModernHook: ClassHook<NSObject> {
         pageURI: NSURL,
         interactionID: NSString
     ) {
-        let isPlaylist = Dynamic.convert(pageURI, to: SPTURL.self)
-            .isPlaylistURL()
-        
-        showPlaylistDownloadingPopUp(
-            isPlaylist,
-            onSecondaryClick: isPlaylist
-                ? {
-                    self.orig.downloadToggledWithCurrentAvailability(
-                        availability,
-                        addAction: addAction,
-                        removeAction: removeAction,
-                        pageIdentifier: pageIdentifier,
-                        pageURI: pageURI,
-                        interactionID: interactionID
-                    )
-                }
-                : nil
+        OfflineDownloadManager.shared.handleDownloadToggle(uri: pageURI as URL)
+        orig.downloadToggledWithCurrentAvailability(
+            availability,
+            addAction: addAction,
+            removeAction: removeAction,
+            pageIdentifier: pageIdentifier,
+            pageURI: pageURI,
+            interactionID: interactionID
         )
     }
 }

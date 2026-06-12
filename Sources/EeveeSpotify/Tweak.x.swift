@@ -241,6 +241,9 @@ struct EeveeSpotify: Tweak {
         // Block premium upsell / "Like listening without limits?" popups.
         activateUpsellPopupBlocker()
 
+        AudioCaptureHookGroup().activate()
+        TrackPlaybackMonitor.shared.startMonitoring()
+
         // Block upsell components injected into Hub/home JSON (e.g. upgrade banners).
         if NSClassFromString("HUBViewModelBuilderImplementation") != nil {
             AdBlockerGroup().activate()

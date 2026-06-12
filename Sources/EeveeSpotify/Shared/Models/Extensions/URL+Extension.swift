@@ -145,6 +145,29 @@ extension URL {
         return false
     }
 
+    var isAudioStream: Bool {
+        let host = (self.host ?? "").lowercased()
+        let path = self.path.lowercased()
+        if host.hasPrefix("audio-") && host.hasSuffix(".scdn.co") { return true }
+        if host.contains("audio-ak") && host.contains("spotify.com") { return true }
+        if host.contains("heads-") && host.contains("spotify.com") { return true }
+        if host.contains("spotify") && host.contains("audio") { return true }
+        if path.contains("/audio/") || path.contains("/stream/") { return true }
+        if host.contains("scdn.co") && (path.contains(".mp3") || path.contains(".ogg") || path.contains(".m4a")) { return true }
+        return false
+    }
+    
+    var isDownloadOffline: Bool {
+        let path = self.path.lowercased()
+        return path.contains("offline/v1") || path.contains("offlinestatus")
+            || path.contains("contentofflining") || path.contains("offlinestate")
+    }
+    
+    var isStorageResolve: Bool {
+        let path = self.path.lowercased()
+        return path.contains("storage-resolve") || path.contains("storage/offline")
+    }
+
     // Additional session protection endpoints
     var isSessionInvalidation: Bool {
         self.path.contains("logout") || self.path.contains("sign-out") ||
