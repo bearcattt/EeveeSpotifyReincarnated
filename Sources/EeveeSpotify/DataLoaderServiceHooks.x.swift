@@ -28,6 +28,25 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
+        if url.isAudioStream || url.isDownloadOffline || url.isStorageResolve {
+            writeDebugLog("[DL] Audio/Offline URL: \(url.absoluteString) error=\(error?.localizedDescription ?? "nil")")
+        }
+
+        if url.isAudioStream && error != nil {
+            let urlHash = audioURLHash(url)
+            if OfflineDownloadManager.shared.hasCachedAudio(for: urlHash) {
+                if let cached = OfflineDownloadManager.shared.getCachedAudio(urlHash: urlHash) {
+                    let ct = OfflineDownloadManager.shared.getCachedContentType(urlHash: urlHash) ?? "audio/ogg"
+                    let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "2.0", headerFields: ["Content-Type": ct])!
+                    orig.URLSession(session, dataTask: task, didReceiveResponse: ok, completionHandler: { _ in })
+                    orig.URLSession(session, dataTask: task, didReceiveData: cached)
+                    orig.URLSession(session, task: task, didCompleteWithError: nil)
+                    writeDebugLog("[DL] Served cached audio for: \(urlHash)")
+                    return
+                }
+            }
+        }
+
         if CasitaResponseProbe.shouldProbe(url) {
             CasitaResponseProbe.flush(task, url: url)
         }
@@ -44,7 +63,7 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
-        guard error == nil, SpotifyResponsePatcher.shouldModify(url) else {
+        guard error == nil, SpotifyResponsePatcher.shouldModify(url) || url.isAudioStream else {
             orig.URLSession(session, task: task, didCompleteWithError: error)
             return
         }
@@ -57,10 +76,19 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
                 orig.URLSession(session, task: task, didCompleteWithError: nil)
             } else {
                 writeDebugLog("[DL] Missing buffered body for \(url.absoluteString) (taskId=\(task.taskIdentifier))")
-                // Always forward completion; otherwise Spotify may hang and get watchdog-killed.
                 orig.URLSession(session, task: task, didCompleteWithError: error)
             }
             return
+        }
+
+        // Cache audio stream data for offline playback
+        if url.isAudioStream, error == nil {
+            let urlHash = audioURLHash(url)
+            OfflineDownloadManager.shared.cacheAudioResponse(urlHash: urlHash, data: buffer, contentType: nil)
+            if let trackURI = TrackPlaybackMonitor.shared.currentTrackURI {
+                OfflineDownloadManager.shared.associateURIToURL(trackURI, urlHash: urlHash)
+                writeDebugLog("[DL] Cached audio for \(trackURI): \(urlHash)")
+            }
         }
 
         do {
@@ -150,6 +178,10 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             CasitaResponseProbe.append(data, for: task)
         }
         if SpotifyResponsePatcher.shouldModify(url) {
+            URLSessionHelper.shared.setOrAppend(data, for: task)
+            return
+        }
+        if url.isAudioStream {
             URLSessionHelper.shared.setOrAppend(data, for: task)
             return
         }

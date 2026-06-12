@@ -25,6 +25,25 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
+        if url.isAudioStream || url.isDownloadOffline || url.isStorageResolve {
+            writeDebugLog("[HCUS] Audio/Offline URL: \(url.absoluteString) error=\(error?.localizedDescription ?? "nil")")
+        }
+
+        if url.isAudioStream && error != nil {
+            let urlHash = audioURLHash(url)
+            if OfflineDownloadManager.shared.hasCachedAudio(for: urlHash) {
+                if let cached = OfflineDownloadManager.shared.getCachedAudio(urlHash: urlHash) {
+                    let ct = OfflineDownloadManager.shared.getCachedContentType(urlHash: urlHash) ?? "audio/ogg"
+                    let ok = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "2.0", headerFields: ["Content-Type": ct])!
+                    orig.URLSession(session, dataTask: task, didReceiveResponse: ok, completionHandler: { _ in })
+                    orig.URLSession(session, dataTask: task, didReceiveData: cached)
+                    orig.URLSession(session, task: task, didCompleteWithError: nil)
+                    writeDebugLog("[HCUS] Served cached audio for: \(urlHash)")
+                    return
+                }
+            }
+        }
+
         if CasitaResponseProbe.shouldProbe(url) {
             CasitaResponseProbe.flush(task, url: url)
         }
@@ -40,7 +59,7 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
             return
         }
 
-        guard error == nil, SpotifyResponsePatcher.shouldModify(url) else {
+        guard error == nil, SpotifyResponsePatcher.shouldModify(url) || url.isAudioStream else {
             orig.URLSession(session, task: task, didCompleteWithError: error)
             return
         }
@@ -56,6 +75,16 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
                 orig.URLSession(session, task: task, didCompleteWithError: error)
             }
             return
+        }
+
+        // Cache audio stream data for offline playback
+        if url.isAudioStream, error == nil {
+            let urlHash = audioURLHash(url)
+            OfflineDownloadManager.shared.cacheAudioResponse(urlHash: urlHash, data: buffer, contentType: nil)
+            if let trackURI = TrackPlaybackMonitor.shared.currentTrackURI {
+                OfflineDownloadManager.shared.associateURIToURL(trackURI, urlHash: urlHash)
+                writeDebugLog("[HCUS] Cached audio for \(trackURI): \(urlHash)")
+            }
         }
 
         do {
@@ -134,7 +163,7 @@ class HttpClientURLSessionHook: ClassHook<NSObject>, SpotifySessionDelegate {
         if CasitaResponseProbe.shouldProbe(url) {
             CasitaResponseProbe.append(data, for: task)
         }
-        if SpotifyResponsePatcher.shouldModify(url) {
+        if SpotifyResponsePatcher.shouldModify(url) || url.isAudioStream {
             URLSessionHelper.shared.setOrAppend(data, for: task)
             return
         }
